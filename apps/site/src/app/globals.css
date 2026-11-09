@@ -1,0 +1,258 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --color-card: var(--s1);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--s2);
+  --color-popover-foreground: var(--ink);
+  --color-primary: var(--btn);
+  --color-primary-foreground: var(--btn-ink);
+  --color-secondary: var(--s2);
+  --color-secondary-foreground: var(--ink);
+  --color-muted: var(--hover-2);
+  --color-muted-foreground: var(--ink-3);
+  --color-accent: var(--hover-2);
+  --color-accent-foreground: var(--ink);
+  --color-destructive: var(--danger);
+  --color-border: var(--line-2);
+  --color-input: var(--line-2);
+  --color-ring: var(--ink-3);
+  --color-ember: var(--ember);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-s1: var(--s1);
+  --color-s2: var(--s2);
+  --color-side: var(--side);
+  --color-line: var(--line);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-commit), ui-monospace, monospace;
+  --font-heading: var(--font-sans);
+  --font-display: var(--font-shippori), serif;
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-morph: cubic-bezier(0.32, 0.72, 0, 1);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+}
+
+:root {
+  --radius: 8px;
+  --side: #e3e2dd;
+  --bg: #e9e8e3;
+  --s1: #f3f2ee;
+  --s2: #f8f7f4;
+  --line: rgb(28 26 22 / 0.08);
+  --line-2: rgb(28 26 22 / 0.12);
+  --ink: #1c1c1e;
+  --ink-2: #4c4d52;
+  --ink-3: #6b6c72;
+  --hover-2: rgb(28 26 22 / 0.05);
+  --ember: #d5683f;
+  --danger: #b4372b;
+  --btn: #1c1c1e;
+  --btn-ink: #f3f2ee;
+}
+
+.dark {
+  --side: #18191b;
+  --bg: #1b1c1f;
+  --s1: #212226;
+  --s2: #28292e;
+  --line: rgb(255 255 255 / 0.07);
+  --line-2: rgb(255 255 255 / 0.11);
+  --ink: #ececee;
+  --ink-2: #b6b8be;
+  --ink-3: #8f929a;
+  --hover-2: rgb(255 255 255 / 0.06);
+  --ember: #f0845e;
+  --danger: #ff8a7e;
+  --btn: #ececee;
+  --btn-ink: #1b1c1f;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    background: var(--bg);
+    color: var(--ink);
+    font-feature-settings: "cv11", "ss03";
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: rgb(213 104 63 / 0.22);
+  }
+}
+
+/* Grain over the page, the paper the trace sits on. Static, so it costs one paint. */
+.grain {
+  position: relative;
+  isolation: isolate;
+}
+
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.09 0 0 0 0 0.08 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.dark .grain::after {
+  mix-blend-mode: screen;
+  opacity: 0.12;
+}
+
+/* Crop marks around a framed object, like a print proof. */
+.crop {
+  position: relative;
+}
+
+.crop::before,
+.crop::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  border-color: var(--ink-3);
+  opacity: 0.6;
+}
+
+.crop::before {
+  top: -9px;
+  left: -9px;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+
+.crop::after {
+  right: -9px;
+  bottom: -9px;
+  border-right: 1px solid;
+  border-bottom: 1px solid;
+}
+
+.code :where(pre) {
+  background: transparent;
+}
+
+/* Shiki writes both themes as variables; pick one by the page's theme. */
+:where(.code, .prose-docs pre) span {
+  color: var(--shiki-light);
+}
+
+.dark :where(.code, .prose-docs pre) span {
+  color: var(--shiki-dark);
+}
+
+.kiseki {
+  --kiseki-font: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --kiseki-mono: var(--font-commit), ui-monospace, monospace;
+}
+
+/* docs */
+.prose-docs {
+  max-width: 76ch;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+
+.prose-docs h1 {
+  font-family: var(--font-shippori), serif;
+  font-weight: 800;
+  font-size: 56px;
+  line-height: 1;
+  color: var(--ink);
+  margin: 0 0 20px;
+}
+
+.prose-docs h2 {
+  margin: 48px 0 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  scroll-margin-top: 24px;
+}
+
+.prose-docs :where(p, ul, ol, table, pre) {
+  margin: 0 0 14px;
+}
+
+.prose-docs :where(ul, ol) {
+  padding-left: 22px;
+  list-style: disc;
+}
+
+.prose-docs ol {
+  list-style: decimal;
+}
+
+.prose-docs a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--line-2);
+  text-underline-offset: 3px;
+}
+
+.prose-docs a:hover {
+  text-decoration-color: currentColor;
+}
+
+.prose-docs strong {
+  color: var(--ink);
+}
+
+.prose-docs :not(pre) > code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--hover-2);
+  font-family: var(--font-commit), monospace;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+.prose-docs pre {
+  overflow-x: auto;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: var(--s1);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-family: var(--font-commit), monospace;
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+
+.prose-docs table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.prose-docs :where(th, td) {
+  padding: 7px 12px 7px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose-docs th {
+  font-weight: 600;
+  color: var(--ink);
+}
