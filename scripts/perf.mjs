@@ -174,20 +174,32 @@ const moved = (before, after, keys = Object.keys(before)) =>
 }
 
 console.error("4. Opening", JSON.stringify(results));
-// 4. Opening a patch loads @pierre/diffs then, not before.
+// 4. @pierre/diffs loads only once a diff is on screen: never for a trace without edits.
 {
-  const { page, context } = await open("fixture=synthetic-300.json");
-  const before = await page.evaluate(() => !!customElements.get("diffs-container"));
-  const edit = page.locator(".kiseki-call-line", { hasText: "Edit" }).first();
-  await edit.scrollIntoViewIfNeeded();
-  await edit.click();
-  await page.locator(".kiseki-patch-line").first().click();
-  await page.waitForFunction(() => !!customElements.get("diffs-container"), null, {
+  const { page, context } = await open("fixture=errors.json");
+  await page.waitForTimeout(1500);
+  const withoutEdits = await page.evaluate(() => !!customElements.get("diffs-container"));
+  await context.close();
+  const second = await open("fixture=synthetic-300.json");
+  const diff = second.page.locator(".kiseki-diff").first();
+  await diff.scrollIntoViewIfNeeded();
+  await second.page.waitForFunction(() => !!customElements.get("diffs-container"), null, {
     timeout: 10_000,
   });
-  await page.waitForSelector("diffs-container", { timeout: 10_000 });
-  results.diffsLazy = { beforePatchOpened: before, afterPatchOpened: true };
-  await context.close();
+  // The placeholder and the real diff have the same height.
+  const sizes = await second.page.evaluate(() =>
+    [...document.querySelectorAll(".kiseki-diff")].map((el) => {
+      const box = el.firstElementChild;
+      return {
+        reserved: Number.parseFloat(box?.style.height ?? "0"),
+        natural: Math.round(box?.scrollHeight ?? 0),
+        actual: Math.round(box?.firstElementChild?.getBoundingClientRect().height ?? 0),
+      };
+    }),
+  );
+  results.diffsLazy = { traceWithoutEdits: withoutEdits, afterDiffOnScreen: true };
+  results.diffHeightErrorPx = Math.max(0, ...sizes.map((s) => Math.abs(s.actual - s.reserved)));
+  await second.context.close();
 }
 
 console.error("5. Streaming", JSON.stringify(results));
@@ -230,6 +242,42 @@ console.error("5. Streaming", JSON.stringify(results));
   await context.close();
 }
 
+// 6. The site: the demo scrolls with the page, and opening or closing a call keeps it in place.
+{
+  const context = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+  const page = await context.newPage();
+  await page.addInitScript(observe);
+  await page.goto(`${base}/`);
+  await page.waitForTimeout(800);
+  await page.mouse.wheel(0, 1400);
+  await page.waitForTimeout(500);
+  const drift = [];
+  for (let i = 0; i < 6; i++) {
+    const el = (
+      await page.evaluateHandle((i) => {
+        const lines = [...document.querySelectorAll(".kiseki-call-line")].filter((el) => {
+          const r = el.getBoundingClientRect();
+          return r.top > 200 && r.bottom < innerHeight - 100;
+        });
+        return lines[i % Math.max(1, lines.length)] ?? null;
+      }, i)
+    ).asElement();
+    if (!el) break;
+    const before = await el.evaluate((e) => e.getBoundingClientRect().top);
+    await el.click();
+    await page.waitForTimeout(650);
+    drift.push(
+      Math.round(Math.abs((await el.evaluate((e) => e.getBoundingClientRect().top)) - before)),
+    );
+  }
+  results.siteAnchorDriftPx = Math.max(0, ...drift);
+  results.siteNestedScroller = await page.evaluate(
+    () => !!document.querySelector(".kiseki-scroll"),
+  );
+  results.siteLoadCls = shiftSum((await perf(page)).shifts);
+  await context.close();
+}
+
 await browser.close();
 server?.kill();
 
@@ -242,8 +290,9 @@ const budget = {
     results.expandMovesRowsAbovePx < 1 &&
     results.streamReaderMovePx < 1 &&
     results.scrollSettleMovePx < 1,
-  lazyDiffs: !results.diffsLoadedAtRest && !results.diffsLazy.beforePatchOpened,
-  following: results.followGapPx <= 2,
+  lazyDiffs: !results.diffsLazy.traceWithoutEdits && results.diffHeightErrorPx < 1,
+  following: results.followGapPx <= 8,
+  siteAnchored: results.siteAnchorDriftPx < 1 && !results.siteNestedScroller,
 };
 const report = { ...results, budget, measuredAt: new Date().toISOString() };
 writeFileSync("docs/perf-results.json", `${JSON.stringify(report, null, 2)}\n`);
