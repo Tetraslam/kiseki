@@ -108,3 +108,24 @@ export function branchTree(view: TraceView, loaded?: ReadonlyMap<string, TraceVi
   };
   return build(view, view.roots, 0);
 }
+
+/**
+ * Splits a branch head's children into subagent runs. One launching step can hold several
+ * subagents back to back; a run starts at a subagent's prompt (a user step) or where time
+ * jumps backward, as it does between subagents that ran in parallel.
+ */
+export function branchRuns(trace: TraceView, head: ViewStep): ViewStep[][] {
+  const runs: ViewStep[][] = [];
+  let last = Number.NEGATIVE_INFINITY;
+  for (const index of head.children) {
+    const child = trace.byIndex.get(index);
+    if (!child) continue;
+    const time = child.step.timestamp ? Date.parse(child.step.timestamp) : Number.NaN;
+    const current = runs.at(-1);
+    const fresh = !current || child.step.role === "user" || (!Number.isNaN(time) && time < last);
+    if (fresh) runs.push([child]);
+    else current.push(child);
+    if (!Number.isNaN(time)) last = time;
+  }
+  return runs;
+}

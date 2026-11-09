@@ -9,6 +9,15 @@ export {
   type TraceView,
   type ViewStep,
 } from "./normalize";
+export {
+  layoutOverview,
+  type Overview,
+  type OverviewLane,
+  type OverviewOptions,
+  type Segment,
+  type SegmentKind,
+  segmentAt,
+} from "./overview";
 export { type ParseResult, parseTraces, resolveGenerations } from "./parse";
 export {
   recordSchema,
