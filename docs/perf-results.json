@@ -1,0 +1,41 @@
+{
+  "firstRowsSamplesMs": [
+    66,
+    69,
+    63,
+    79,
+    63
+  ],
+  "firstRowsMedianMs": 66,
+  "steps": 10000,
+  "parseMs": 77.90000000037253,
+  "firstRowsMs": 75.90000000037253,
+  "firstRowsCommitMs": 63.90000000037253,
+  "longTasksAfterParse": [
+    73
+  ],
+  "domRows": 16,
+  "diffsLoadedAtRest": false,
+  "scrollSettleMovePx": 0,
+  "scrollCls": 0,
+  "scrollLongTasks": [],
+  "expandMovesRowsAbovePx": 0,
+  "diffsLoadedAfterExpand": false,
+  "cls": 0,
+  "shiftsWithoutInput": [],
+  "diffsLazy": {
+    "beforePatchOpened": false,
+    "afterPatchOpened": true
+  },
+  "streamReaderMovePx": 0,
+  "streamCls": 0,
+  "streamLongTasks": [],
+  "followGapPx": 2,
+  "budget": {
+    "firstRows": true,
+    "noShift": true,
+    "lazyDiffs": true,
+    "following": true
+  },
+  "measuredAt": "2026-11-09T21:47:10.685Z"
+}
