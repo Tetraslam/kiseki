@@ -1,0 +1,248 @@
+{
+  "info": {
+    "id": "ses_0fixtureparent000000000001",
+    "projectID": "0fixtureproject",
+    "agent": "build",
+    "model": {
+      "id": "gpt-6.1-terra",
+      "providerID": "openai",
+      "variant": "default"
+    },
+    "cost": 0.02,
+    "tokens": {
+      "input": 300,
+      "output": 90,
+      "reasoning": 0,
+      "cache": {
+        "read": 2000,
+        "write": 0
+      }
+    },
+    "outcome": "succeeded",
+    "time": {
+      "created": 1793700000000,
+      "updated": 1793700030000,
+      "busy": 1793700000000,
+      "idle": 1793700030000
+    },
+    "title": "Finalize notes",
+    "location": {
+      "directory": "/work/demo"
+    }
+  },
+  "messages": [
+    {
+      "id": "msg_0fixture0001",
+      "time": {
+        "created": 1793700001000
+      },
+      "text": "Mark the notes as final and ask a helper to review them.",
+      "type": "user"
+    },
+    {
+      "id": "msg_0fixture0002",
+      "time": {
+        "created": 1793700001000,
+        "streamed": 1793700002000,
+        "completed": 1793700004000
+      },
+      "type": "system",
+      "text": "Reminder: keep edits small."
+    },
+    {
+      "id": "msg_0fixture0003",
+      "time": {
+        "created": 1793700002000,
+        "streamed": 1793700003000,
+        "completed": 1793700006000
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "gpt-6.1-terra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Edit the first line.",
+          "time": {
+            "created": 1793700003000,
+            "completed": 1793700003000
+          }
+        },
+        {
+          "type": "text",
+          "text": "Editing notes.md."
+        },
+        {
+          "type": "tool",
+          "id": "call_0fixtureedit",
+          "name": "edit",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/work/demo/notes.md",
+              "oldString": "draft",
+              "newString": "final"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "Edit applied successfully."
+              }
+            ],
+            "metadata": {
+              "diagnostics": {},
+              "diff": "Index: /work/demo/notes.md\n===================================================================\n--- /work/demo/notes.md\n+++ /work/demo/notes.md\n@@ -1,1 +1,1 @@\n-draft\n+final\n",
+              "filediff": {
+                "file": "/work/demo/notes.md",
+                "patch": "Index: /work/demo/notes.md\n===================================================================\n--- /work/demo/notes.md\n+++ /work/demo/notes.md\n@@ -1,1 +1,1 @@\n-draft\n+final\n",
+                "additions": 1,
+                "deletions": 1
+              }
+            }
+          },
+          "time": {
+            "created": 1793700004000,
+            "ran": 1793700004000,
+            "completed": 1793700005000
+          }
+        },
+        {
+          "type": "tool",
+          "id": "call_0fixtureread",
+          "name": "read",
+          "state": {
+            "status": "error",
+            "input": {
+              "filePath": "/work/demo/missing.md"
+            },
+            "error": {
+              "type": "tool.execution",
+              "message": "File not found: /work/demo/missing.md"
+            }
+          },
+          "time": {
+            "created": 1793700004000,
+            "ran": 1793700004000,
+            "completed": 1793700004000
+          }
+        }
+      ],
+      "finish": "tool-calls",
+      "cost": 0.01,
+      "tokens": {
+        "input": 200,
+        "output": 50,
+        "reasoning": 0,
+        "cache": {
+          "read": 1000,
+          "write": 0
+        }
+      }
+    },
+    {
+      "id": "msg_0fixture0004",
+      "time": {
+        "created": 1793700006000,
+        "streamed": 1793700007000,
+        "completed": 1793700020000
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "gpt-6.1-terra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "content": [
+        {
+          "type": "tool",
+          "id": "call_0fixturetask",
+          "name": "task",
+          "state": {
+            "status": "completed",
+            "input": {
+              "description": "Review notes",
+              "subagent_type": "general",
+              "prompt": "Review notes.md."
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "Looks good."
+              }
+            ],
+            "metadata": {
+              "parentSessionId": "ses_0fixtureparent000000000001",
+              "sessionId": "ses_0fixturechild0000000000001",
+              "model": {
+                "providerID": "openai",
+                "modelID": "gpt-6.1-terra"
+              },
+              "truncated": false
+            }
+          },
+          "time": {
+            "created": 1793700007000,
+            "ran": 1793700007000,
+            "completed": 1793700019000
+          }
+        }
+      ],
+      "finish": "tool-calls",
+      "cost": 0.005,
+      "tokens": {
+        "input": 60,
+        "output": 20,
+        "reasoning": 0,
+        "cache": {
+          "read": 600,
+          "write": 0
+        }
+      }
+    },
+    {
+      "id": "msg_0fixture0005",
+      "time": {
+        "created": 1793700020000,
+        "streamed": 1793700021000,
+        "completed": 1793700022000
+      },
+      "type": "assistant",
+      "agent": "build",
+      "model": {
+        "id": "gpt-6.1-terra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Done: notes.md is final and reviewed."
+        }
+      ],
+      "finish": "stop",
+      "cost": 0.005,
+      "tokens": {
+        "input": 40,
+        "output": 20,
+        "reasoning": 0,
+        "cache": {
+          "read": 400,
+          "write": 0
+        }
+      }
+    },
+    {
+      "id": "msg_0fixture0006",
+      "time": {
+        "created": 1793700030000
+      },
+      "type": "idle",
+      "outcome": "succeeded"
+    }
+  ]
+}

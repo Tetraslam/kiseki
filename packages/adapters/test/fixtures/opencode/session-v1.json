@@ -1,0 +1,222 @@
+{
+  "info": {
+    "id": "ses_0fixturev1000000000000001",
+    "version": "1.18.16",
+    "projectID": "0fixtureproject",
+    "directory": "/work/demo",
+    "title": "Fix typo",
+    "time": {
+      "created": 1793700000000,
+      "updated": 1793700010000
+    }
+  },
+  "messages": [
+    {
+      "info": {
+        "id": "msg_0fixturev1u01",
+        "sessionID": "ses_0fixturev1000000000000001",
+        "role": "user",
+        "time": {
+          "created": 1793700000000
+        },
+        "agent": "build",
+        "model": {
+          "providerID": "anthropic",
+          "modelID": "claude-sonnet-5-5"
+        }
+      },
+      "parts": [
+        {
+          "id": "prt_0fixture01",
+          "type": "text",
+          "text": "Fix the typo in readme.md."
+        }
+      ]
+    },
+    {
+      "info": {
+        "id": "msg_0fixturev1a01",
+        "sessionID": "ses_0fixturev1000000000000001",
+        "role": "assistant",
+        "time": {
+          "created": 1793700001000,
+          "completed": 1793700009000
+        },
+        "parentID": "msg_0fixturev1u01",
+        "modelID": "claude-sonnet-5-5",
+        "providerID": "anthropic",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/work/demo",
+          "root": "/work/demo"
+        },
+        "cost": 0.004,
+        "tokens": {
+          "total": 550,
+          "input": 30,
+          "output": 20,
+          "reasoning": 0,
+          "cache": {
+            "read": 500,
+            "write": 0
+          }
+        },
+        "finish": "stop"
+      },
+      "parts": [
+        {
+          "id": "prt_0fixture02",
+          "type": "step-start",
+          "snapshot": "0fixturesnap1"
+        },
+        {
+          "id": "prt_0fixture03",
+          "type": "reasoning",
+          "text": "Find the typo first.",
+          "time": {
+            "start": 1793700001000,
+            "end": 1793700002000
+          }
+        },
+        {
+          "id": "prt_0fixture04",
+          "type": "tool",
+          "callID": "toolu_0fixturegrep",
+          "tool": "grep",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "teh"
+            },
+            "output": "readme.md:3: teh end",
+            "title": "teh",
+            "metadata": {
+              "matches": 1
+            },
+            "time": {
+              "start": 1793700002000,
+              "end": 1793700003000
+            }
+          }
+        },
+        {
+          "id": "prt_0fixture05",
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "0fixturesnap1",
+          "cost": 0.002,
+          "tokens": {
+            "total": 280,
+            "input": 20,
+            "output": 10,
+            "reasoning": 0,
+            "cache": {
+              "read": 250,
+              "write": 0
+            }
+          }
+        },
+        {
+          "id": "prt_0fixture06",
+          "type": "step-start",
+          "snapshot": "0fixturesnap1"
+        },
+        {
+          "id": "prt_0fixture07",
+          "type": "tool",
+          "callID": "toolu_0fixtureedit",
+          "tool": "edit",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/work/demo/readme.md",
+              "oldString": "teh end",
+              "newString": "the end"
+            },
+            "output": "Edit applied successfully.",
+            "title": "readme.md",
+            "metadata": {
+              "diff": "Index: /work/demo/readme.md\n===================================================================\n--- /work/demo/readme.md\n+++ /work/demo/readme.md\n@@ -3,1 +3,1 @@\n-teh end\n+the end\n"
+            },
+            "time": {
+              "start": 1793700004000,
+              "end": 1793700005000
+            }
+          }
+        },
+        {
+          "id": "prt_0fixture08",
+          "type": "tool",
+          "callID": "toolu_0fixturebash",
+          "tool": "bash",
+          "state": {
+            "status": "error",
+            "input": {
+              "command": "make check"
+            },
+            "error": "Command exited with code 2",
+            "time": {
+              "start": 1793700005000,
+              "end": 1793700006000
+            }
+          }
+        },
+        {
+          "id": "prt_0fixture09",
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "0fixturesnap2",
+          "cost": 0.001,
+          "tokens": {
+            "total": 135,
+            "input": 5,
+            "output": 5,
+            "reasoning": 0,
+            "cache": {
+              "read": 125,
+              "write": 0
+            }
+          }
+        },
+        {
+          "id": "prt_0fixture10",
+          "type": "step-start",
+          "snapshot": "0fixturesnap2"
+        },
+        {
+          "id": "prt_0fixture11",
+          "type": "text",
+          "text": "Fixed the typo.",
+          "time": {
+            "start": 1793700008000,
+            "end": 1793700008000
+          }
+        },
+        {
+          "id": "prt_0fixture12",
+          "type": "step-finish",
+          "reason": "stop",
+          "snapshot": "0fixturesnap2",
+          "cost": 0.001,
+          "tokens": {
+            "total": 135,
+            "input": 5,
+            "output": 5,
+            "reasoning": 0,
+            "cache": {
+              "read": 125,
+              "write": 0
+            }
+          }
+        },
+        {
+          "id": "prt_0fixture13",
+          "type": "patch",
+          "hash": "0fixturesnap2",
+          "files": ["/work/demo/readme.md"]
+        }
+      ]
+    }
+  ]
+}

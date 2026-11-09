@@ -1,0 +1,55 @@
+{
+  "name": "@tetraslam/kiseki-adapters",
+  "version": "0.1.0",
+  "description": "Convert AI SDK, Claude Code, OpenCode, Codex, and Pi sessions into OpenTraces records for kiseki.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tetraslam/kiseki",
+    "directory": "packages/adapters"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./ai-sdk": {
+      "types": "./dist/ai-sdk.d.ts",
+      "default": "./dist/ai-sdk.js"
+    },
+    "./claude-code": {
+      "types": "./dist/claude-code.d.ts",
+      "default": "./dist/claude-code.js"
+    },
+    "./opencode": {
+      "types": "./dist/opencode.d.ts",
+      "default": "./dist/opencode.js"
+    },
+    "./codex": {
+      "types": "./dist/codex.d.ts",
+      "default": "./dist/codex.js"
+    },
+    "./pi": {
+      "types": "./dist/pi.d.ts",
+      "default": "./dist/pi.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tetraslam/kiseki-core": "workspace:*"
+  },
+  "devDependencies": {
+    "ai": "^7.0.165"
+  }
+}

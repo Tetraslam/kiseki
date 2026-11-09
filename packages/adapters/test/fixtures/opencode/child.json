@@ -1,0 +1,73 @@
+{
+  "info": {
+    "id": "ses_0fixturechild0000000000001",
+    "parentID": "ses_0fixtureparent000000000001",
+    "projectID": "0fixtureproject",
+    "agent": "general",
+    "model": {
+      "id": "gpt-6.1-terra",
+      "providerID": "openai",
+      "variant": "default"
+    },
+    "cost": 0,
+    "tokens": {
+      "input": 50,
+      "output": 10,
+      "reasoning": 0,
+      "cache": {
+        "read": 0,
+        "write": 0
+      }
+    },
+    "outcome": "succeeded",
+    "time": {
+      "created": 1793700007000,
+      "updated": 1793700019000
+    },
+    "title": "Review notes",
+    "location": {
+      "directory": "/work/demo"
+    }
+  },
+  "messages": [
+    {
+      "id": "msg_0fixturec001",
+      "time": {
+        "created": 1793700007000
+      },
+      "text": "Review notes.md.",
+      "type": "user"
+    },
+    {
+      "id": "msg_0fixturec002",
+      "time": {
+        "created": 1793700008000,
+        "completed": 1793700018000
+      },
+      "type": "assistant",
+      "agent": "general",
+      "model": {
+        "id": "gpt-6.1-terra",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Looks good."
+        }
+      ],
+      "finish": "stop",
+      "cost": 0,
+      "tokens": {
+        "input": 50,
+        "output": 10,
+        "reasoning": 0,
+        "cache": {
+          "read": 0,
+          "write": 0
+        }
+      }
+    }
+  ]
+}
