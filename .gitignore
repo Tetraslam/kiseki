@@ -1,0 +1,10 @@
+node_modules
+dist
+.next
+.vercel
+*.tsbuildinfo
+.env*.local
+coverage
+next-env.d.ts
+fixtures/synthetic-10k.jsonl
+apps/site/public/fixtures
