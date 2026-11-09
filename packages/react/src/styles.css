@@ -1,7 +1,8 @@
 /*
- * kiseki. Every color, font, and curve is a --kiseki-* variable, so hosts restyle without forking.
- * Surfaces are steps a few percent apart. State is an ink overlay. One accent hue.
- * Defaults sit in :where() so any host rule on .kiseki overrides them, whatever the load order.
+ * kiseki. An instrument for reading agent runs: cool graphite surfaces, hairlines, and one
+ * aizome accent that means position (the trajectory, the selected step, the viewport, the live
+ * tail). See BRIEF.md. Every value is a --kiseki-* variable; defaults sit in :where() so any host
+ * rule on .kiseki overrides them, whatever the load order.
  */
 
 :where(.kiseki) {
@@ -10,35 +11,36 @@
   --kiseki-mono: "Commit Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --kiseki-size: 13px;
   --kiseki-size-small: 12px;
+  --kiseki-size-tiny: 11px;
   --kiseki-line: 1.55;
 
-  --kiseki-bg: #e9e8e3;
-  --kiseki-surface: #f3f2ee;
-  --kiseki-raised: #f8f7f4;
-  --kiseki-sunken: #e3e2dd;
-  --kiseki-ink: #1c1c1e;
-  --kiseki-ink-2: #4c4d52;
-  --kiseki-ink-3: #6b6c72;
-  --kiseki-line-1: rgb(28 26 22 / 0.08);
-  --kiseki-line-2: rgb(28 26 22 / 0.12);
-  --kiseki-line-3: rgb(28 26 22 / 0.2);
-  --kiseki-hover: rgb(28 26 22 / 0.035);
-  --kiseki-hover-strong: rgb(28 26 22 / 0.06);
-  --kiseki-press: rgb(28 26 22 / 0.09);
-  --kiseki-accent: #d5683f;
-  --kiseki-accent-ink: #a5441f;
-  --kiseki-accent-wash: rgb(213 104 63 / 0.11);
-  --kiseki-danger: #b4372b;
-  --kiseki-danger-wash: rgb(180 55 43 / 0.08);
+  --kiseki-bg: #f2f3f5;
+  --kiseki-surface: #f9fafb;
+  --kiseki-raised: #fdfdfe;
+  --kiseki-sunken: #e9ebef;
+  --kiseki-ink: #14161b;
+  --kiseki-ink-2: #474c57;
+  --kiseki-ink-3: #737985;
+  --kiseki-line-1: rgb(20 22 27 / 0.08);
+  --kiseki-line-2: rgb(20 22 27 / 0.12);
+  --kiseki-line-3: rgb(20 22 27 / 0.2);
+  --kiseki-hover: rgb(20 22 27 / 0.04);
+  --kiseki-hover-strong: rgb(20 22 27 / 0.07);
+  --kiseki-press: rgb(20 22 27 / 0.1);
+  /* aizome: ai-iro in light, hanada-iro in dark. It marks position, nothing else. */
+  --kiseki-accent: #1d5f86;
+  --kiseki-accent-ink: #174e6f;
+  --kiseki-accent-wash: rgb(29 95 134 / 0.1);
+  --kiseki-danger: #c8384a;
+  --kiseki-danger-wash: rgb(208 58 76 / 0.08);
 
-  --kiseki-radius: 6px;
-  --kiseki-radius-small: 4px;
-  --kiseki-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --kiseki-morph: cubic-bezier(0.32, 0.72, 0, 1);
-  --kiseki-fast: 140ms;
-  --kiseki-standard: 220ms;
-  --kiseki-slow: 380ms;
-  --kiseki-measure: 72ch;
+  --kiseki-radius: 4px;
+  --kiseki-track: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --kiseki-open: cubic-bezier(0.3, 0.7, 0, 1);
+  --kiseki-fast: 90ms;
+  --kiseki-standard: 180ms;
+  --kiseki-slow: 280ms;
+  --kiseki-measure: 76ch;
 
   /* @pierre/diffs reads these through its shadow root. */
   --diffs-font-family: var(--kiseki-mono);
@@ -46,14 +48,36 @@
   --diffs-font-size: 12px;
   --diffs-line-height: 19px;
   --diffs-light-bg: var(--kiseki-raised);
-  --diffs-dark-bg: var(--kiseki-raised);
+  --diffs-dark-bg: var(--kiseki-sunken);
+}
+
+:where(.dark, [data-theme="dark"]) :where(.kiseki:not([data-theme="light"])),
+:where(.kiseki[data-theme="dark"]) {
+  color-scheme: dark;
+  --kiseki-bg: #0f1115;
+  --kiseki-surface: #151820;
+  --kiseki-raised: #1b1f28;
+  --kiseki-sunken: #0a0c10;
+  --kiseki-ink: #e4e7ee;
+  --kiseki-ink-2: #a9afbc;
+  --kiseki-ink-3: #7a8190;
+  --kiseki-line-1: rgb(255 255 255 / 0.06);
+  --kiseki-line-2: rgb(255 255 255 / 0.1);
+  --kiseki-line-3: rgb(255 255 255 / 0.16);
+  --kiseki-hover: rgb(255 255 255 / 0.035);
+  --kiseki-hover-strong: rgb(255 255 255 / 0.06);
+  --kiseki-press: rgb(255 255 255 / 0.09);
+  --kiseki-accent: #5fa7cc;
+  --kiseki-accent-ink: #84bedc;
+  --kiseki-accent-wash: rgb(95 167 204 / 0.13);
+  --kiseki-danger: #ff7a86;
+  --kiseki-danger-wash: rgb(255 122 134 / 0.09);
 }
 
 .kiseki {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  height: 100%;
   background: var(--kiseki-bg);
   color: var(--kiseki-ink);
   font-family: var(--kiseki-font);
@@ -67,27 +91,8 @@
   isolation: isolate;
 }
 
-:where(.dark, [data-theme="dark"]) :where(.kiseki:not([data-theme="light"])),
-:where(.kiseki[data-theme="dark"]) {
-  color-scheme: dark;
-  --kiseki-bg: #1b1c1f;
-  --kiseki-surface: #212226;
-  --kiseki-raised: #28292e;
-  --kiseki-sunken: #18191b;
-  --kiseki-ink: #ececee;
-  --kiseki-ink-2: #b6b8be;
-  --kiseki-ink-3: #8f929a;
-  --kiseki-line-1: rgb(255 255 255 / 0.07);
-  --kiseki-line-2: rgb(255 255 255 / 0.11);
-  --kiseki-line-3: rgb(255 255 255 / 0.17);
-  --kiseki-hover: rgb(255 255 255 / 0.03);
-  --kiseki-hover-strong: rgb(255 255 255 / 0.06);
-  --kiseki-press: rgb(255 255 255 / 0.09);
-  --kiseki-accent: #f0845e;
-  --kiseki-accent-ink: #f39a79;
-  --kiseki-accent-wash: rgb(240 132 94 / 0.12);
-  --kiseki-danger: #ff8a7e;
-  --kiseki-danger-wash: rgb(255 138 126 / 0.08);
+.kiseki[data-scroll="container"] {
+  height: 100%;
 }
 
 .kiseki *,
@@ -107,14 +112,14 @@
   text-align: inherit;
 }
 
-.kiseki :where(button, a, input):focus-visible {
-  outline: 2px solid var(--kiseki-accent);
+.kiseki :where(button, a, input, canvas):focus-visible {
+  outline: 1.5px solid var(--kiseki-accent);
   outline-offset: 1px;
-  border-radius: var(--kiseki-radius-small);
+  border-radius: var(--kiseki-radius);
 }
 
-.kiseki-mono,
-.kiseki :where(code, pre, kbd) {
+.kiseki :where(code, pre, kbd),
+.kiseki-mono {
   font-family: var(--kiseki-mono);
   font-size: 12px;
   font-variant-ligatures: none;
@@ -122,7 +127,7 @@
 
 .kiseki-num {
   font-family: var(--kiseki-mono);
-  font-size: 11.5px;
+  font-size: var(--kiseki-size-tiny);
   font-variant-numeric: tabular-nums;
 }
 
@@ -130,93 +135,198 @@
   color: var(--kiseki-ink-3);
 }
 
-/* header */
+.kiseki-failed {
+  color: var(--kiseki-danger);
+}
+
+/* header: outcome and answer first, then the numbers people check, then everything else */
 
 .kiseki-header {
   flex: none;
-  padding: 14px 16px 12px;
-  border-bottom: 1px solid var(--kiseki-line-1);
-  background: var(--kiseki-bg);
   display: grid;
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  padding: 16px 16px 14px;
+  border-bottom: 1px solid var(--kiseki-line-1);
 }
 
-.kiseki-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.35;
-  max-width: var(--kiseki-measure);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-}
-
-.kiseki-meta {
+.kiseki-verdict {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  column-gap: 14px;
-  row-gap: 4px;
-  color: var(--kiseki-ink-2);
-  font-size: var(--kiseki-size-small);
-}
-
-.kiseki-meta > span {
-  display: inline-flex;
   align-items: baseline;
-  gap: 5px;
-  white-space: nowrap;
-}
-
-.kiseki-meta-label {
-  color: var(--kiseki-ink-3);
+  column-gap: 16px;
+  row-gap: 6px;
 }
 
 .kiseki-outcome {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 20px;
-  padding: 0 8px;
-  border-radius: 999px;
-  background: var(--kiseki-hover-strong);
-  color: var(--kiseki-ink);
-  font-size: 11.5px;
-  font-weight: 500;
+  gap: 7px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
-.kiseki-outcome::before {
-  content: "";
-  width: 6px;
-  height: 6px;
+.kiseki-outcome-mark {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--kiseki-ink-3);
-}
-
-.kiseki-outcome[data-state="success"]::before {
   background: var(--kiseki-ink);
-}
-
-.kiseki-outcome[data-state="live"]::before {
-  background: var(--kiseki-accent);
-  animation: kiseki-pulse 1.2s var(--kiseki-ease) infinite;
-}
-
-.kiseki-failed {
-  color: var(--kiseki-danger);
+  align-self: center;
 }
 
 .kiseki-outcome[data-state="failure"] {
-  background: var(--kiseki-danger-wash);
   color: var(--kiseki-danger);
 }
 
-.kiseki-outcome[data-state="failure"]::before {
+.kiseki-outcome[data-state="failure"] .kiseki-outcome-mark {
   background: var(--kiseki-danger);
+}
+
+.kiseki-outcome[data-state="unknown"] .kiseki-outcome-mark {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--kiseki-ink-3);
+}
+
+.kiseki-outcome[data-state="live"] .kiseki-outcome-mark {
+  background: var(--kiseki-accent);
+  animation: kiseki-pulse 1.2s var(--kiseki-track) infinite;
+}
+
+.kiseki-key-metrics {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-family: var(--kiseki-mono);
+  font-size: 12.5px;
+  color: var(--kiseki-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.kiseki-key-metrics .kiseki-unit {
+  color: var(--kiseki-ink-3);
+  margin-left: 3px;
+  font-family: var(--kiseki-font);
+  font-size: var(--kiseki-size-small);
+}
+
+.kiseki-answer {
+  max-width: var(--kiseki-measure);
+  color: var(--kiseki-ink);
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
+}
+
+.kiseki-answer[data-clamped] {
+  max-height: calc(13.5px * 1.55 * 4);
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, #000 60%, transparent);
+}
+
+.kiseki-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 12px;
+  row-gap: 2px;
+  color: var(--kiseki-ink-3);
+  font-size: var(--kiseki-size-small);
+  min-width: 0;
+}
+
+.kiseki-prompt {
+  flex: 1 1 320px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kiseki-prompt b {
+  font-weight: 500;
+  color: var(--kiseki-ink-2);
+}
+
+/* overview: the trajectory */
+
+.kiseki-overview {
+  flex: none;
+  position: relative;
+  border-bottom: 1px solid var(--kiseki-line-1);
+  background: var(--kiseki-bg);
+}
+
+.kiseki-overview-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 26px;
+  padding: 0 12px 0 16px;
+  font-size: var(--kiseki-size-tiny);
+  color: var(--kiseki-ink-3);
+}
+
+.kiseki-overview canvas {
+  display: block;
+  width: 100%;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.kiseki-scale {
+  margin-left: auto;
+  display: inline-flex;
+  border-radius: var(--kiseki-radius);
+  box-shadow: inset 0 0 0 1px var(--kiseki-line-2);
+}
+
+.kiseki-scale button {
+  height: 18px;
+  padding: 0 7px;
+  border-radius: var(--kiseki-radius);
+  color: var(--kiseki-ink-3);
+  transition:
+    background var(--kiseki-fast) var(--kiseki-track),
+    color var(--kiseki-fast) var(--kiseki-track);
+}
+
+.kiseki-scale button:hover {
+  background: var(--kiseki-hover-strong);
+  color: var(--kiseki-ink-2);
+}
+
+.kiseki-scale button[aria-pressed="true"] {
+  background: var(--kiseki-hover-strong);
+  color: var(--kiseki-ink);
+}
+
+.kiseki-tip {
+  position: absolute;
+  z-index: 3;
+  top: 30px;
+  width: 280px;
+  padding: 7px 9px;
+  border-radius: var(--kiseki-radius);
+  background: var(--kiseki-raised);
+  box-shadow:
+    0 0 0 1px var(--kiseki-line-2),
+    0 6px 20px rgb(0 0 0 / 0.12);
+  pointer-events: none;
+  font-size: var(--kiseki-size-small);
+  display: grid;
+  gap: 2px;
+}
+
+.kiseki-tip[hidden] {
+  display: none;
+}
+
+.kiseki-tip-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 /* toolbar */
@@ -225,13 +335,19 @@
   flex: none;
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 36px;
+  gap: 6px;
+  height: 34px;
   padding: 0 10px 0 12px;
   border-bottom: 1px solid var(--kiseki-line-1);
   background: var(--kiseki-bg);
   font-size: var(--kiseki-size-small);
   color: var(--kiseki-ink-3);
+}
+
+.kiseki-sticky {
+  position: sticky;
+  top: var(--kiseki-sticky-top, 0px);
+  z-index: 2;
 }
 
 .kiseki-search {
@@ -240,10 +356,10 @@
   gap: 6px;
   flex: 1;
   min-width: 0;
-  height: 26px;
-  padding: 0 8px;
+  height: 24px;
+  padding: 0 7px;
   border-radius: var(--kiseki-radius);
-  transition: background var(--kiseki-fast) var(--kiseki-ease);
+  transition: background var(--kiseki-fast) var(--kiseki-track);
 }
 
 .kiseki-search:hover {
@@ -278,10 +394,10 @@
 .kiseki-kbd {
   display: inline-grid;
   place-items: center;
-  min-width: 18px;
-  height: 18px;
+  min-width: 17px;
+  height: 17px;
   padding: 0 4px;
-  border-radius: var(--kiseki-radius-small);
+  border-radius: 3px;
   box-shadow: inset 0 0 0 1px var(--kiseki-line-2);
   font-family: var(--kiseki-mono);
   font-size: 10.5px;
@@ -291,11 +407,11 @@
 .kiseki-icon-button {
   display: inline-grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: var(--kiseki-radius-small);
+  width: 22px;
+  height: 22px;
+  border-radius: var(--kiseki-radius);
   color: var(--kiseki-ink-2);
-  transition: background var(--kiseki-fast) var(--kiseki-ease);
+  transition: background var(--kiseki-fast) var(--kiseki-track);
 }
 
 .kiseki-icon-button:hover {
@@ -307,7 +423,7 @@
 }
 
 .kiseki-icon-button:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: default;
   background: none;
 }
@@ -344,6 +460,7 @@
 .kiseki-rows {
   position: relative;
   width: 100%;
+  overflow-anchor: none;
 }
 
 .kiseki-row {
@@ -361,10 +478,9 @@
 .kiseki-step {
   --kiseki-depth: 0;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
-  padding: 8px 14px 8px 0;
+  grid-template-columns: 48px minmax(0, 1fr);
+  padding: 5px 14px 5px 0;
   position: relative;
-  cursor: default;
 }
 
 .kiseki-step::before {
@@ -372,7 +488,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  transition: background var(--kiseki-fast) var(--kiseki-ease);
+  transition: background var(--kiseki-fast) var(--kiseki-track);
 }
 
 .kiseki-step:hover::before {
@@ -384,84 +500,95 @@
   box-shadow: inset 2px 0 0 var(--kiseki-accent);
 }
 
+/* a user turn starts a new section */
+.kiseki-step[data-turn] {
+  padding-top: 14px;
+  margin-top: 4px;
+}
+
+.kiseki-step[data-turn]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--kiseki-line-2);
+}
+
 .kiseki-gutter {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  position: relative;
+  padding: 2px 9px 0 0;
+  text-align: right;
+  color: var(--kiseki-ink-3);
+  user-select: none;
+  opacity: 0.75;
+}
+
+.kiseki-step[data-selected] .kiseki-gutter {
   color: var(--kiseki-accent-ink);
+  opacity: 1;
+}
+
+.kiseki-step[data-match] .kiseki-gutter {
+  color: var(--kiseki-accent-ink);
+  opacity: 1;
 }
 
 .kiseki-step[data-match] .kiseki-gutter::after {
   content: "";
   position: absolute;
   left: 6px;
-  top: 14px;
+  top: 9px;
   width: 4px;
   height: 4px;
   border-radius: 50%;
   background: var(--kiseki-accent);
 }
 
-.kiseki-gutter {
-  position: relative;
-  padding: 1px 10px 0 0;
-  text-align: right;
-  color: var(--kiseki-ink-3);
-  user-select: none;
-}
-
-.kiseki-step[data-match] .kiseki-body {
+.kiseki-body {
   min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 6px;
-  padding-left: calc(var(--kiseki-depth) * 18px);
+  gap: 4px;
+  padding-left: calc(var(--kiseki-depth) * 16px);
   position: relative;
 }
 
-/* branch rails: one thin line per nesting level */
+/* one rail per nesting level */
 .kiseki-body[data-depth]::before {
   content: "";
   position: absolute;
-  top: -8px;
-  bottom: -8px;
+  top: -5px;
+  bottom: -5px;
   left: 0;
-  width: calc(var(--kiseki-depth) * 18px);
+  width: calc(var(--kiseki-depth) * 16px);
   pointer-events: none;
   background-image: linear-gradient(to right, var(--kiseki-line-2) 1px, transparent 1px);
-  background-size: 18px 100%;
-  background-position: 5px 0;
+  background-size: 16px 100%;
+  background-position: 4px 0;
   background-repeat: repeat-x;
 }
 
-.kiseki-step-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
-  min-height: 20px;
-}
-
-.kiseki-role {
-  font-size: 11.5px;
-  font-weight: 550;
-  color: var(--kiseki-ink-2);
-  text-transform: lowercase;
-}
-
-.kiseki-step[data-role="user"] .kiseki-role {
-  color: var(--kiseki-accent-ink);
-}
-
-.kiseki-step-meta {
-  margin-left: auto;
-  display: flex;
-  gap: 10px;
+/* step meta lives in the gutter: quiet on hover, visible when the step stands out */
+.kiseki-gutter-meta {
+  font-size: 10px;
   color: var(--kiseki-ink-3);
-  white-space: nowrap;
-  flex: none;
+  opacity: 0;
+  transition: opacity var(--kiseki-fast) var(--kiseki-track);
 }
 
-.kiseki-agent-role {
-  font-size: 11.5px;
-  color: var(--kiseki-ink-3);
+.kiseki-step:hover .kiseki-gutter-meta,
+.kiseki-step[data-selected] .kiseki-gutter-meta {
+  opacity: 1;
+}
+
+.kiseki-gutter-meta[data-outlier] {
+  opacity: 1;
+  color: var(--kiseki-ink);
 }
 
 /* messages */
@@ -471,22 +598,36 @@
   overflow-wrap: anywhere;
 }
 
-.kiseki-message[data-role="user"] {
-  padding: 8px 11px;
-  border-radius: var(--kiseki-radius);
-  background: var(--kiseki-raised);
-  box-shadow: inset 0 0 0 1px var(--kiseki-line-1);
+.kiseki-user {
+  max-width: var(--kiseki-measure);
+  color: var(--kiseki-ink);
+  font-weight: 500;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
-.kiseki-message[data-role="system"] {
+.kiseki-task {
+  max-width: var(--kiseki-measure);
   color: var(--kiseki-ink-2);
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.kiseki-task-label {
+  color: var(--kiseki-ink-3);
+  font-size: var(--kiseki-size-small);
+}
+
+.kiseki-system {
+  max-width: var(--kiseki-measure);
+  color: var(--kiseki-ink-3);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .kiseki-clamp {
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -500,14 +641,13 @@
 }
 
 .kiseki-markdown :where(p, ul, ol, pre, blockquote, table) {
-  margin: 0 0 8px;
+  margin: 0 0 7px;
 }
 
 .kiseki-markdown :where(h1, h2, h3, h4, h5, h6) {
-  margin: 12px 0 6px;
-  font-size: 13.5px;
+  margin: 10px 0 4px;
+  font-size: 13px;
   font-weight: 600;
-  line-height: 1.4;
 }
 
 .kiseki-markdown :where(ul, ol) {
@@ -539,8 +679,8 @@
 }
 
 .kiseki-markdown :not(pre) > code {
-  padding: 1px 4px;
-  border-radius: var(--kiseki-radius-small);
+  padding: 0 4px;
+  border-radius: 3px;
   background: var(--kiseki-hover-strong);
   font-size: 11.5px;
 }
@@ -548,13 +688,13 @@
 .kiseki-markdown pre,
 .kiseki-pre {
   margin: 0;
-  padding: 8px 10px;
+  padding: 7px 10px;
   border-radius: var(--kiseki-radius);
   background: var(--kiseki-sunken);
-  overflow: auto;
-  white-space: pre;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   line-height: 1.5;
-  scrollbar-width: thin;
+  color: var(--kiseki-ink);
 }
 
 .kiseki-markdown blockquote {
@@ -582,12 +722,12 @@
   margin: 10px 0;
 }
 
-/* disclosure: a block that grows in place */
+/* disclosure: grows in place */
 
 .kiseki-disclosure {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows var(--kiseki-standard) var(--kiseki-morph);
+  transition: grid-template-rows var(--kiseki-standard) var(--kiseki-open);
 }
 
 .kiseki-disclosure[data-open] {
@@ -602,17 +742,17 @@
 .kiseki-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   max-width: 100%;
-  min-height: 22px;
-  padding: 0 6px;
-  margin-left: -6px;
-  border-radius: var(--kiseki-radius-small);
+  min-height: 20px;
+  padding: 0 5px;
+  margin-left: -5px;
+  border-radius: var(--kiseki-radius);
   color: var(--kiseki-ink-3);
   font-size: var(--kiseki-size-small);
   transition:
-    background var(--kiseki-fast) var(--kiseki-ease),
-    color var(--kiseki-fast) var(--kiseki-ease);
+    background var(--kiseki-fast) var(--kiseki-track),
+    color var(--kiseki-fast) var(--kiseki-track);
 }
 
 .kiseki-toggle:hover {
@@ -622,21 +762,18 @@
 
 .kiseki-chevron {
   flex: none;
-  width: 10px;
-  height: 10px;
-  transition: transform var(--kiseki-standard) var(--kiseki-morph);
+  width: 9px;
+  height: 9px;
+  transition: transform var(--kiseki-standard) var(--kiseki-open);
 }
 
-[data-open] > .kiseki-chevron,
-.kiseki-toggle[aria-expanded="true"] > .kiseki-chevron {
+[aria-expanded="true"] > .kiseki-chevron {
   transform: rotate(90deg);
 }
 
-/* reasoning */
-
 .kiseki-reasoning-text {
-  padding: 2px 0 2px 12px;
-  margin: 4px 0 2px 4px;
+  padding: 1px 0 1px 11px;
+  margin: 3px 0 2px 3px;
   border-left: 1px solid var(--kiseki-line-2);
   color: var(--kiseki-ink-3);
   white-space: pre-wrap;
@@ -644,7 +781,7 @@
   overflow-wrap: anywhere;
 }
 
-/* tool calls */
+/* tool calls: the result leads, the target follows, the tool name recedes */
 
 .kiseki-calls {
   display: grid;
@@ -653,24 +790,21 @@
 }
 
 .kiseki-call {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   border-radius: var(--kiseki-radius);
-  position: relative;
-}
-
-.kiseki-call[data-open] {
-  background: var(--kiseki-surface);
-  box-shadow: inset 0 0 0 1px var(--kiseki-line-1);
 }
 
 .kiseki-call-line {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  min-height: 26px;
-  padding: 0 8px;
+  min-height: 24px;
+  padding: 0 6px;
+  margin-left: -6px;
+  width: calc(100% + 12px);
   border-radius: var(--kiseki-radius);
-  transition: background var(--kiseki-fast) var(--kiseki-ease);
+  transition: background var(--kiseki-fast) var(--kiseki-track);
 }
 
 .kiseki-call-line:hover {
@@ -681,39 +815,42 @@
   background: var(--kiseki-press);
 }
 
-.kiseki-dot {
+.kiseki-glyph {
   flex: none;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--kiseki-ink-3);
+  width: 12px;
+  height: 12px;
+  display: grid;
+  place-items: center;
+  color: var(--kiseki-ink-3);
 }
 
-.kiseki-call[data-status="error"] .kiseki-dot {
-  background: var(--kiseki-danger);
+.kiseki-call[data-status="error"] .kiseki-glyph,
+.kiseki-call[data-failed] .kiseki-glyph {
+  color: var(--kiseki-danger);
 }
 
-.kiseki-call[data-status="missing"] .kiseki-dot {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--kiseki-ink-3);
+.kiseki-call[data-status="pending"] .kiseki-glyph {
+  color: var(--kiseki-accent);
+  animation: kiseki-pulse 1.2s var(--kiseki-track) infinite;
 }
 
-.kiseki-call[data-status="pending"] .kiseki-dot {
-  background: var(--kiseki-accent);
-  animation: kiseki-pulse 1.2s var(--kiseki-ease) infinite;
-}
-
-.kiseki-call-name {
-  flex: none;
-  font-family: var(--kiseki-mono);
-  font-size: 12px;
-  font-weight: 500;
+.kiseki-result {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--kiseki-ink);
 }
 
-.kiseki-call-arg {
+.kiseki-call[data-status="error"] .kiseki-result,
+.kiseki-call[data-failed] .kiseki-result {
+  color: var(--kiseki-danger);
+}
+
+.kiseki-target {
+  flex: 1 1 0;
   min-width: 0;
-  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -722,57 +859,88 @@
   color: var(--kiseki-ink-2);
 }
 
-.kiseki-call-summary {
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 45%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.kiseki-tool-name {
+  flex: none;
+  font-size: var(--kiseki-size-tiny);
   color: var(--kiseki-ink-3);
-  font-size: var(--kiseki-size-small);
-}
-
-.kiseki-call[data-status="error"] .kiseki-call-summary {
-  color: var(--kiseki-danger);
+  opacity: 0.8;
 }
 
 .kiseki-call-time {
   flex: none;
-  color: var(--kiseki-ink-3);
-  min-width: 5ch;
+  min-width: 4.5ch;
   text-align: right;
+  color: var(--kiseki-ink-3);
 }
 
-.kiseki-call-detail {
+.kiseki-call-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
-  padding: 2px 8px 10px 22px;
-}
-
-.kiseki-field {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 3px;
+  gap: 6px;
+  padding: 2px 0 6px 20px;
   min-width: 0;
 }
 
-.kiseki-field-label {
-  font-size: 11px;
-  color: var(--kiseki-ink-3);
-  text-transform: lowercase;
+.kiseki-out {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: var(--kiseki-radius);
+  background: var(--kiseki-sunken);
+  font-family: var(--kiseki-mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--kiseki-ink-2);
 }
 
-.kiseki-output {
+.kiseki-out[data-scroll] {
   max-height: 360px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.kiseki-out mark {
+  background: var(--kiseki-accent-wash);
+  color: var(--kiseki-ink);
+  border-radius: 2px;
+}
+
+.kiseki-command {
+  color: var(--kiseki-ink);
+}
+
+.kiseki-kv {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: 12px;
+  row-gap: 3px;
+  font-size: var(--kiseki-size-small);
+}
+
+.kiseki-kv dt {
+  color: var(--kiseki-ink-3);
+  font-family: var(--kiseki-mono);
+  font-size: 11.5px;
+}
+
+.kiseki-kv dd {
+  margin: 0;
+  min-width: 0;
+  font-family: var(--kiseki-mono);
+  font-size: 11.5px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--kiseki-ink-2);
 }
 
 .kiseki-error {
-  padding: 8px 10px;
+  padding: 6px 10px;
   border-radius: var(--kiseki-radius);
   background: var(--kiseki-danger-wash);
   color: var(--kiseki-danger);
+  font-family: var(--kiseki-mono);
+  font-size: 11.5px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -780,6 +948,24 @@
 .kiseki-note {
   color: var(--kiseki-ink-3);
   font-size: var(--kiseki-size-small);
+}
+
+.kiseki-more {
+  justify-self: start;
+  color: var(--kiseki-ink-3);
+  font-size: var(--kiseki-size-tiny);
+  padding: 0 5px;
+  margin-left: -5px;
+  min-height: 18px;
+  border-radius: var(--kiseki-radius);
+  transition:
+    background var(--kiseki-fast) var(--kiseki-track),
+    color var(--kiseki-fast) var(--kiseki-track);
+}
+
+.kiseki-more:hover {
+  background: var(--kiseki-hover-strong);
+  color: var(--kiseki-ink-2);
 }
 
 .kiseki-shimmer {
@@ -801,39 +987,36 @@
 
 /* patches */
 
-.kiseki-patch {
+.kiseki-diff {
   border-radius: var(--kiseki-radius);
   overflow: hidden;
   box-shadow: inset 0 0 0 1px var(--kiseki-line-1);
   background: var(--kiseki-raised);
 }
 
-.kiseki-patch-line {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 28px;
-  padding: 0 10px;
-  font-size: var(--kiseki-size-small);
-  transition: background var(--kiseki-fast) var(--kiseki-ease);
+.kiseki-diff-box {
+  overflow: clip;
 }
 
-.kiseki-patch-line:hover {
-  background: var(--kiseki-hover-strong);
+.kiseki-diff-wait {
+  margin: 0;
+  padding: 8px 10px;
+  font-family: var(--kiseki-mono);
+  font-size: 12px;
+  line-height: 19px;
+  white-space: pre;
+  overflow: hidden;
+  color: var(--kiseki-ink-3);
 }
 
 .kiseki-patch-path {
   min-width: 0;
-  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   /* Clip long paths from the left, keeping the file name. The inner bdi keeps "/" in place. */
   direction: rtl;
   text-align: left;
-  font-family: var(--kiseki-mono);
-  font-size: 12px;
 }
 
 .kiseki-add {
@@ -844,26 +1027,21 @@
   color: var(--kiseki-ink-3);
 }
 
-.kiseki-patch-body {
-  border-top: 1px solid var(--kiseki-line-1);
-  min-height: 40px;
-}
-
 /* branches */
 
 .kiseki-branch {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 26px;
-  padding: 0 9px 0 7px;
-  margin-left: -1px;
+  gap: 7px;
+  min-height: 24px;
+  padding: 0 8px 0 6px;
   border-radius: var(--kiseki-radius);
   box-shadow: inset 0 0 0 1px var(--kiseki-line-2);
   font-size: var(--kiseki-size-small);
   color: var(--kiseki-ink-2);
   width: fit-content;
-  transition: background var(--kiseki-fast) var(--kiseki-ease);
+  max-width: 100%;
+  transition: background var(--kiseki-fast) var(--kiseki-track);
 }
 
 .kiseki-branch:hover {
@@ -874,10 +1052,10 @@
   background: var(--kiseki-surface);
 }
 
-/* new rows in live mode */
+/* live */
 
 .kiseki-row[data-new] > .kiseki-step {
-  animation: kiseki-arrive var(--kiseki-slow) var(--kiseki-ease) both;
+  animation: kiseki-arrive var(--kiseki-slow) var(--kiseki-track) both;
 }
 
 .kiseki-follow {
@@ -888,17 +1066,16 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 28px;
-  padding: 0 11px;
-  border-radius: 999px;
-  background: var(--kiseki-ink);
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--kiseki-radius);
+  background: var(--kiseki-accent);
   color: var(--kiseki-bg);
   font-size: var(--kiseki-size-small);
   font-weight: 500;
-  box-shadow: 0 4px 14px rgb(0 0 0 / 0.14);
   transition:
-    opacity var(--kiseki-standard) var(--kiseki-ease),
-    transform var(--kiseki-standard) var(--kiseki-ease);
+    opacity var(--kiseki-standard) var(--kiseki-track),
+    transform var(--kiseki-standard) var(--kiseki-track);
 }
 
 .kiseki-follow[data-hidden] {
@@ -907,36 +1084,15 @@
   pointer-events: none;
 }
 
-/* empty and overview */
+.kiseki[data-scroll="page"] .kiseki-follow {
+  position: fixed;
+}
 
 .kiseki-empty {
   display: grid;
   place-items: center;
-  height: 100%;
   min-height: 120px;
   color: var(--kiseki-ink-3);
-}
-
-.kiseki-overview {
-  display: grid;
-  gap: 1px;
-  padding: 8px;
-  font-size: var(--kiseki-size-small);
-}
-
-.kiseki-overview button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 24px;
-  padding: 0 8px;
-  padding-left: calc(8px + var(--kiseki-depth, 0) * 14px);
-  border-radius: var(--kiseki-radius-small);
-  color: var(--kiseki-ink-2);
-}
-
-.kiseki-overview button:hover {
-  background: var(--kiseki-hover-strong);
 }
 
 /* compare */
@@ -969,40 +1125,28 @@
   border-left: 1px solid var(--kiseki-line-1);
 }
 
-.kiseki-pair[data-diverged] {
+.kiseki-pair[data-diverged] > div:not(:has(.kiseki-gap)) {
   background: var(--kiseki-accent-wash);
 }
 
-.kiseki-pair[data-first-divergence]::before {
-  content: "runs diverge here";
-  position: absolute;
-  top: 0;
-  right: 14px;
-  z-index: 1;
-  transform: translateY(-50%);
-  padding: 0 7px;
-  border-radius: 999px;
-  background: var(--kiseki-accent);
-  color: #fff;
-  font-size: 10.5px;
-  font-weight: 600;
-  line-height: 18px;
+.kiseki-pair[data-first-divergence] {
+  box-shadow: inset 0 1px 0 var(--kiseki-accent);
 }
 
 .kiseki-gap {
   height: 100%;
-  min-height: 36px;
+  min-height: 30px;
   background-image: repeating-linear-gradient(
     -45deg,
-    transparent 0 6px,
-    var(--kiseki-line-1) 6px 7px
+    transparent 0 5px,
+    var(--kiseki-line-1) 5px 6px
   );
 }
 
 @keyframes kiseki-arrive {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(3px);
   }
 }
 
@@ -1032,4 +1176,8 @@
     /* biome-ignore lint/complexity/noImportantStyles: as above. */
     transition-duration: 0.01ms !important;
   }
+}
+
+[data-push] {
+  margin-left: auto;
 }

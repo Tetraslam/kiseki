@@ -17,6 +17,15 @@ export interface TraceContextValue extends TraceLoaders {
   /** The model the header already names; steps only show a model that differs from it. */
   traceModel?: string;
   root: TraceView;
+  /** The run's working directory, so paths read relative to it. */
+  workdir?: string;
+  /** Steps whose duration or tokens stand out from the rest of the trace. */
+  outliers: Outliers;
+}
+
+export interface Outliers {
+  duration: ReadonlySet<string>;
+  tokens: ReadonlySet<string>;
 }
 
 export const TraceContext = createContext<TraceContextValue | null>(null);

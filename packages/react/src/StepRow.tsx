@@ -1,4 +1,4 @@
-import type { Row } from "@tetraslam/kiseki-core";
+import { branchRuns, type Row } from "@tetraslam/kiseki-core";
 import { memo } from "react";
 import { CallSlot, Chevron, Message, PatchBlock, Reasoning } from "./blocks";
 import { reasoningKey, systemKey, useTrace } from "./context";
@@ -11,29 +11,35 @@ export interface StepRowProps {
   selected: boolean;
   match: boolean;
   branchState: BranchState;
+  /** The step opens a new user turn: it gets a rule above it instead of a label. */
+  turn: boolean;
+  /** Marks the step number for Element Timing, so a perf script can read when it painted. */
+  timing?: boolean;
   onSelect: (key: string) => void;
   onToggleBranch: (key: string) => void;
 }
 
-/** One step: its role, message, reasoning, tool calls, patches, and branch toggle. */
+/**
+ * One step. The role is carried by layout: a user turn opens a section, agent text is plain,
+ * subagent prompts read as the task they were given. Numbers stay out of the way unless they
+ * stand out.
+ */
 export const StepRow = memo(function StepRow({
   row,
   selected,
   match,
   branchState,
+  turn,
+  timing,
   onSelect,
   onToggleBranch,
 }: StepRowProps) {
   const context = useTrace();
   const { view, trace } = row;
   const { step } = view;
-  const { renderers } = context;
+  const { renderers, outliers } = context;
   const model = step.model && step.model !== context.traceModel ? shortModel(step.model) : "";
-  const tokens =
-    (view.tokens.input_tokens ?? 0) + (view.tokens.output_tokens ?? 0) > 0
-      ? `${formatTokens(view.tokens.input_tokens)} → ${formatTokens(view.tokens.output_tokens)}`
-      : "";
-  const showRole = step.agent_role && step.agent_role !== "main" ? step.agent_role : "";
+  const totalTokens = (view.tokens.input_tokens ?? 0) + (view.tokens.output_tokens ?? 0);
   const callIds = new Set(view.calls.map((c) => c.call.tool_call_id));
   const loosePatches = view.patches.filter((p) => !p.tool_call_id || !callIds.has(p.tool_call_id));
   const streaming = trace.live && trace.steps.at(-1) === view;
@@ -42,6 +48,7 @@ export const StepRow = memo(function StepRow({
   const MessageRenderer = renderers.message ?? Message;
   const ReasoningRenderer = renderers.reasoning ?? Reasoning;
   const systemOpen = context.isExpanded(systemKey(view.key));
+  const subagentPrompt = step.role === "user" && step.call_type === "subagent";
   // Not in OpenTraces: adapters record a failed LLM call (an abort, a provider error) here.
   const stepError =
     typeof step.error === "string"
@@ -55,44 +62,61 @@ export const StepRow = memo(function StepRow({
     <div
       className="kiseki-step"
       data-role={step.role}
+      data-turn={turn || undefined}
       data-selected={selected || undefined}
       data-match={match || undefined}
       onClick={() => onSelect(view.key)}
     >
-      <div className="kiseki-gutter kiseki-num">{view.index}</div>
+      <div
+        className="kiseki-gutter kiseki-num"
+        title={[
+          model,
+          totalTokens > 0
+            ? `${formatTokens(view.tokens.input_tokens)} in → ${formatTokens(view.tokens.output_tokens)} out`
+            : "",
+          view.durationMs != null ? formatDuration(view.durationMs) : "",
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+      >
+        <span {...(timing ? { elementtiming: "kiseki-first-row" } : {})}>{view.index}</span>
+        {view.durationMs != null && view.durationMs >= 1000 && (
+          <span
+            className="kiseki-gutter-meta"
+            data-outlier={outliers.duration.has(view.key) || undefined}
+          >
+            {formatDuration(view.durationMs)}
+          </span>
+        )}
+        {totalTokens > 0 && (
+          <span
+            className="kiseki-gutter-meta"
+            data-outlier={outliers.tokens.has(view.key) || undefined}
+          >
+            {formatTokens(totalTokens)}
+          </span>
+        )}
+      </div>
       <div
         className="kiseki-body"
         data-depth={row.depth || undefined}
         style={{ "--kiseki-depth": row.depth } as React.CSSProperties}
       >
-        <div className="kiseki-step-head">
-          <span className="kiseki-role">{step.role}</span>
-          {showRole && <span className="kiseki-agent-role">{showRole}</span>}
-          <span className="kiseki-step-meta kiseki-num">
-            {model && <span>{model}</span>}
-            {tokens && <span>{tokens}</span>}
-            {view.durationMs != null && <span>{formatDuration(view.durationMs)}</span>}
-          </span>
-        </div>
         {step.role === "system" && step.content ? (
           SystemRenderer ? (
             <SystemRenderer view={view} row={row} trace={trace} />
           ) : (
             <div>
-              <div
-                className={`kiseki-message${systemOpen ? "" : " kiseki-clamp"}`}
-                data-role="system"
-              >
+              <div className={`kiseki-system${systemOpen ? "" : " kiseki-clamp"}`}>
                 {step.content}
               </div>
-              {step.content.length > 280 && (
+              {step.content.length > 240 && (
                 <button
                   type="button"
-                  className="kiseki-toggle"
+                  className="kiseki-more"
                   aria-expanded={systemOpen}
                   onClick={() => context.toggle(systemKey(view.key))}
                 >
-                  <Chevron />
                   {systemOpen ? "show less" : "show all"}
                 </button>
               )}
@@ -102,10 +126,25 @@ export const StepRow = memo(function StepRow({
         {step.role === "user" && step.content ? (
           UserRenderer ? (
             <UserRenderer view={view} row={row} trace={trace} />
-          ) : (
-            <div className="kiseki-message" data-role="user">
-              {step.content}
+          ) : subagentPrompt ? (
+            <div>
+              <span className="kiseki-task-label">{step.agent_role ?? "subagent"} was asked</span>
+              <div className={`kiseki-task${systemOpen ? "" : " kiseki-clamp"}`}>
+                {step.content.replace(/^You are a subagent[^\n]*\n+/i, "")}
+              </div>
+              {step.content.length > 240 && (
+                <button
+                  type="button"
+                  className="kiseki-more"
+                  aria-expanded={systemOpen}
+                  onClick={() => context.toggle(systemKey(view.key))}
+                >
+                  {systemOpen ? "show less" : "show all"}
+                </button>
+              )}
             </div>
+          ) : (
+            <div className="kiseki-user">{step.content.replace(/^"(.*)"$/s, "$1")}</div>
           )
         ) : null}
         {step.reasoning_content && (
@@ -126,7 +165,7 @@ export const StepRow = memo(function StepRow({
             ))}
           </div>
         )}
-        {stepError && <div className="kiseki-error kiseki-mono">{stepError}</div>}
+        {stepError && <div className="kiseki-error">{stepError}</div>}
         {view.strayObservations.map((observation) => (
           <div key={observation.source_call_id} className="kiseki-note">
             result for unknown call{" "}
@@ -160,20 +199,20 @@ export const StepRow = memo(function StepRow({
 function BranchLabel({ row, state }: { row: Row; state: BranchState }) {
   const { view, trace } = row;
   const ref = view.step.subagent_trajectory_ref;
-  const first = view.children.length ? trace.byIndex.get(view.children[0] as number) : undefined;
-  const role = first?.step.agent_role ?? "subagent";
-  const last = view.children.length
-    ? trace.byIndex.get(view.children[view.children.length - 1] as number)
-    : undefined;
-  const span =
-    first?.step.timestamp && last?.step.timestamp
-      ? Date.parse(last.step.timestamp) - Date.parse(first.step.timestamp) + (last.durationMs ?? 0)
-      : undefined;
+  const runs = branchRuns(trace, view);
+  const role = runs[0]?.[0]?.step.agent_role ?? "subagent";
+  let span: number | undefined;
+  const times = runs
+    .flat()
+    .map((s) => (s.step.timestamp ? Date.parse(s.step.timestamp) : Number.NaN))
+    .filter((t) => !Number.isNaN(t));
+  if (times.length) span = Math.max(...times) - Math.min(...times);
   const size = row.branchSize ?? 0;
+  const label = runs.length > 1 ? `${runs.length} ${role} subagents` : `${role} subagent`;
   return (
     <>
-      <span>{role}</span>
-      {ref && <span className="kiseki-mono kiseki-dim">{oneLine(ref, 40)}</span>}
+      <span>{label}</span>
+      {ref && <span className="kiseki-mono kiseki-dim">{oneLine(ref, 32)}</span>}
       {state === "loading" ? (
         <span className="kiseki-shimmer">loading</span>
       ) : state === "error" ? (
@@ -184,6 +223,7 @@ function BranchLabel({ row, state }: { row: Row; state: BranchState }) {
         <span className="kiseki-num kiseki-dim">
           {size} {size === 1 ? "step" : "steps"}
           {span != null && span > 0 ? ` · ${formatDuration(span)}` : ""}
+          {runs.length > 1 ? " · in parallel" : ""}
         </span>
       )}
     </>

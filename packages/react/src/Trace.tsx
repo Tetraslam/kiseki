@@ -1,8 +1,8 @@
 import {
   ancestorsOf,
-  type BranchNode,
-  branchTree,
+  layoutOverview,
   normalize,
+  overviewLaneCount,
   type Step,
   searchSteps,
   type TraceRecord,
@@ -15,6 +15,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
   type Ref,
+  startTransition,
   useCallback,
   useDeferredValue,
   useEffect,
@@ -33,10 +34,13 @@ import {
   TraceContext,
   type TraceContextValue,
 } from "./context";
+import { formatDuration, oneLine } from "./format";
+import { findOutliers, guessWorkdir } from "./insight";
 import type { BranchState } from "./StepRow";
-import { toggleIn, useControllable } from "./state";
+import { toggleIn, useControllable, useLatest } from "./state";
 import { Timeline, type TimelineHandle } from "./Timeline";
 import { TraceHeader } from "./TraceHeader";
+import { type OverviewHandle, TraceOverview } from "./TraceOverview";
 import type { Renderers, TraceHandle, TraceLoaders } from "./types";
 
 export interface TraceProps extends TraceLoaders {
@@ -65,6 +69,15 @@ export interface TraceProps extends TraceLoaders {
   /** `false` hides the header; a node replaces it. */
   header?: boolean | ReactNode;
   toolbar?: boolean;
+  /** The trajectory overview above the transcript. */
+  overview?: boolean;
+  /**
+   * `container` (default) scrolls inside the trace, which then needs a height. `page` lets the
+   * trace grow with the document and scroll with it; the overview and search stay pinned.
+   */
+  scroll?: "container" | "page";
+  /** In page mode, how far below the top of the viewport the pinned bar sits (a site header). */
+  stickyTop?: number;
   /** `scoped` listens while the trace has focus; `global` listens on the window. */
   keyboard?: "scoped" | "global" | false;
   theme?: "light" | "dark";
@@ -96,6 +109,9 @@ export function Trace(props: TraceProps) {
     permalink,
     header = true,
     toolbar = true,
+    overview: showOverview = true,
+    scroll = "container",
+    stickyTop = 0,
     keyboard = "scoped",
     theme,
     empty,
@@ -181,17 +197,18 @@ export function Trace(props: TraceProps) {
 
   const matches = useMemo(
     () =>
-      searchSteps(
-        all.map((l) => l.view),
-        deferredQuery,
-      ).map((s) => s.key),
+      deferredQuery.trim()
+        ? searchSteps(
+            all.map((l) => l.view),
+            deferredQuery,
+          ).map((s) => s.key)
+        : [],
     [all, deferredQuery],
   );
   const matchSet = useMemo(() => new Set(matches), [matches]);
 
   // Load subagent traces as their branches unfold.
-  const loadTraceRef = useRef(loadTrace);
-  loadTraceRef.current = loadTrace;
+  const loadTraceRef = useLatest(loadTrace);
   useEffect(() => {
     for (const key of unfolded) {
       const located = byKey.get(key);
@@ -243,26 +260,51 @@ export function Trace(props: TraceProps) {
     [byKey, ancestors, unfolded, setUnfolded, setSelected, rows],
   );
 
+  // Opening or closing anything keeps the clicked element where it was on screen.
+  const selectedRef = useLatest(selected);
   const toggleBranch = useCallback(
-    (key: string) => setUnfolded((prev) => toggleIn(prev, [key])),
+    (key: string) => {
+      timeline.current?.anchor(selectedRef.current);
+      setUnfolded((prev) => toggleIn(prev, [key]));
+    },
     [setUnfolded],
   );
   const toggle = useCallback(
-    (key: string) => setExpanded((prev) => toggleIn(prev, [key])),
+    (key: string) => {
+      timeline.current?.anchor(selectedRef.current);
+      setExpanded((prev) => toggleIn(prev, [key]));
+    },
     [setExpanded],
   );
 
   // Uncontrolled selection starts from a `#step=` permalink.
-  const revealRef = useRef(reveal);
-  revealRef.current = reveal;
+  const revealRef = useLatest(reveal);
   useEffect(() => {
     if (props.selectedStep !== undefined || typeof location === "undefined") return;
-    if (location.hash.startsWith(HASH)) {
-      revealRef.current(decodeURIComponent(location.hash.slice(HASH.length)));
+    if (!location.hash.startsWith(HASH)) return;
+    let key: string;
+    try {
+      key = decodeURIComponent(location.hash.slice(HASH.length));
+    } catch {
+      return;
     }
+    revealRef.current(key);
   }, [props.selectedStep]);
 
   const payloads = useRef(new Map<string, PayloadEntry>()).current;
+  // Work the first rows don't need waits for the frame after they paint: the overview's layout
+  // (its height is reserved from a cheap lane count) and which steps stand out (opacity only).
+  const [late, setLate] = useState(false);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => startTransition(() => setLate(true)));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  const outliers = useMemo(
+    () =>
+      late ? findOutliers(view.steps) : { duration: new Set<string>(), tokens: new Set<string>() },
+    [late, view],
+  );
+  const workdir = useMemo(() => guessWorkdir(view), [view]);
   const context = useMemo<TraceContextValue>(
     () => ({
       renderers: renderers ?? {},
@@ -275,8 +317,12 @@ export function Trace(props: TraceProps) {
       payloads,
       traceModel: record.agent.model,
       root: view,
+      workdir,
+      outliers,
     }),
     [
+      workdir,
+      outliers,
       renderers,
       live,
       loadPayload,
@@ -293,7 +339,58 @@ export function Trace(props: TraceProps) {
   const searchInput = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const [notice, setNotice] = useState("");
-  const [overviewOpen, setOverviewOpen] = useState(false);
+  const [scaleChoice, setScale] = useState<"time" | "steps" | null>(null);
+  const laneCount = useMemo(
+    () => (showOverview ? overviewLaneCount(view, { loaded, scale: scaleChoice ?? "auto" }) : 0),
+    [showOverview, view, loaded, scaleChoice],
+  );
+  const layout = useMemo(
+    () =>
+      showOverview && late ? layoutOverview(view, { loaded, scale: scaleChoice ?? "auto" }) : null,
+    [showOverview, late, view, loaded, scaleChoice],
+  );
+  // Time is offered when most steps carry a timestamp, the same rule the layout's auto scale uses.
+  const timedLayout = useMemo(() => {
+    if (!showOverview || !view.steps.length) return false;
+    const timed = view.steps.filter((s) => s.step.timestamp).length;
+    return timed / view.steps.length >= 0.8;
+  }, [showOverview, view]);
+  const overviewRef = useRef<OverviewHandle>(null);
+  const onVisible = useCallback(
+    (range: { from: string; to: string } | null) => overviewRef.current?.setVisible(range),
+    [],
+  );
+  const describe = useCallback(
+    (key: string) => {
+      const located = byKey.get(key);
+      if (!located) return undefined;
+      const { step, calls } = located.view;
+      const text = step.content?.trim();
+      const firstCall = calls[0];
+      const title = text
+        ? oneLine(text.replace(/^"(.*)"$/s, "$1"), 140)
+        : firstCall
+          ? `${calls.map((c) => c.call.tool_name).join(", ")}`
+          : step.reasoning_content
+            ? "thinking"
+            : step.role;
+      const failed = calls.filter((c) => c.status === "error").length;
+      const detail = firstCall
+        ? [
+            failed ? `${failed} failed` : "",
+            firstCall.observation?.output_summary
+              ? oneLine(firstCall.observation.output_summary, 100)
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" · ")
+        : located.view.durationMs != null
+          ? formatDuration(located.view.durationMs)
+          : undefined;
+      return { title: `${step.role === "user" ? "asked: " : ""}${title}`, detail };
+    },
+    [byKey],
+  );
 
   const copyPermalink = useCallback(
     (key: string) => {
@@ -433,11 +530,6 @@ export function Trace(props: TraceProps) {
     [reveal],
   );
 
-  const branches = useMemo(
-    () => (view.hasBranches ? branchTree(view, loaded) : []),
-    [view, loaded],
-  );
-
   return (
     <TraceContext.Provider value={context}>
       <section
@@ -445,85 +537,87 @@ export function Trace(props: TraceProps) {
         className={className ? `kiseki ${className}` : "kiseki"}
         style={style}
         data-theme={theme}
+        data-scroll={scroll}
         aria-label="agent trace"
         // biome-ignore lint/a11y/noNoninteractiveTabindex: the trace takes focus so j/k work.
         tabIndex={0}
         onKeyDown={keyboard === "scoped" ? onKey : undefined}
       >
         {header === true ? <TraceHeader view={view} /> : header || null}
-        {toolbar && (
-          <div className="kiseki-toolbar">
-            <label className="kiseki-search">
-              <SearchIcon />
-              <input
-                ref={searchInput}
-                value={query}
-                placeholder="search steps"
-                aria-label="search steps"
-                spellCheck={false}
-                onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    stepMatch(event.shiftKey ? -1 : 1);
-                  } else if (event.key === "Escape") {
-                    event.preventDefault();
-                    if (query) setQuery("");
-                    else rootRef.current?.focus();
-                  }
-                }}
-              />
-              {!query && <kbd className="kiseki-kbd">/</kbd>}
-            </label>
-            <span className="kiseki-status kiseki-num" aria-live="polite">
-              {notice ||
-                (deferredQuery
-                  ? matches.length
-                    ? `${Math.max(0, selected ? matches.indexOf(selected) : matchCursor) + 1} / ${matches.length}`
-                    : "no matches"
-                  : "")}
-            </span>
-            <button
-              type="button"
-              className="kiseki-icon-button"
-              aria-label="previous match"
-              disabled={!matches.length}
-              onClick={() => stepMatch(-1)}
-            >
-              <ArrowIcon up />
-            </button>
-            <button
-              type="button"
-              className="kiseki-icon-button"
-              aria-label="next match"
-              disabled={!matches.length}
-              onClick={() => stepMatch(1)}
-            >
-              <ArrowIcon />
-            </button>
-            {branches.length > 0 && (
+        <div
+          className={scroll === "page" ? "kiseki-sticky" : undefined}
+          style={
+            scroll === "page"
+              ? ({ "--kiseki-sticky-top": `${stickyTop}px` } as CSSProperties)
+              : undefined
+          }
+        >
+          {showOverview && view.steps.length > 0 && (
+            <TraceOverview
+              handle={overviewRef}
+              overview={layout}
+              lanes={laneCount}
+              selected={selected}
+              onPick={reveal}
+              describe={describe}
+              scale={layout?.scale ?? scaleChoice ?? (timedLayout ? "time" : "steps")}
+              onScale={setScale}
+              canScaleByTime={timedLayout}
+            />
+          )}
+          {toolbar && (
+            <div className="kiseki-toolbar">
+              <label className="kiseki-search">
+                <SearchIcon />
+                <input
+                  ref={searchInput}
+                  value={query}
+                  placeholder="search steps"
+                  aria-label="search steps"
+                  spellCheck={false}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      stepMatch(event.shiftKey ? -1 : 1);
+                    } else if (event.key === "Escape") {
+                      event.preventDefault();
+                      if (query) setQuery("");
+                      else rootRef.current?.focus();
+                    }
+                  }}
+                />
+                {!query && <kbd className="kiseki-kbd">/</kbd>}
+              </label>
+              <span className="kiseki-status kiseki-num" aria-live="polite">
+                {notice ||
+                  (deferredQuery
+                    ? matches.length
+                      ? `${Math.max(0, selected ? matches.indexOf(selected) : matchCursor) + 1} / ${matches.length}`
+                      : "no matches"
+                    : "")}
+              </span>
               <button
                 type="button"
                 className="kiseki-icon-button"
-                aria-label="branches"
-                aria-expanded={overviewOpen}
-                onClick={() => setOverviewOpen((open) => !open)}
+                aria-label="previous match"
+                disabled={!matches.length}
+                onClick={() => stepMatch(-1)}
               >
-                <TreeIcon />
+                <ArrowIcon up />
               </button>
-            )}
-          </div>
-        )}
-        {overviewOpen && branches.length > 0 && (
-          <BranchOverview
-            nodes={branches}
-            unfolded={unfolded}
-            onPick={(key) => {
-              setUnfolded((prev) => toggleIn(prev, [key], true));
-              reveal(key);
-            }}
-          />
-        )}
+              <button
+                type="button"
+                className="kiseki-icon-button"
+                aria-label="next match"
+                disabled={!matches.length}
+                onClick={() => stepMatch(1)}
+              >
+                <ArrowIcon />
+              </button>
+            </div>
+          )}
+        </div>
         <Timeline
           handle={timeline}
           rows={rows}
@@ -531,6 +625,8 @@ export function Trace(props: TraceProps) {
           matches={matchSet}
           branchStates={branchStates}
           live={live}
+          scroll={scroll}
+          onVisible={showOverview ? onVisible : undefined}
           onSelect={setSelected}
           onToggleBranch={toggleBranch}
           onFirstRows={onFirstRows}
@@ -538,45 +634,6 @@ export function Trace(props: TraceProps) {
         />
       </section>
     </TraceContext.Provider>
-  );
-}
-
-/** The subagent hierarchy at a glance, for traces that nest deeply. */
-export function BranchOverview({
-  nodes,
-  unfolded,
-  onPick,
-}: {
-  nodes: BranchNode[];
-  unfolded: ReadonlySet<string>;
-  onPick: (key: string) => void;
-}) {
-  const flat: BranchNode[] = [];
-  const walk = (list: BranchNode[]) => {
-    for (const node of list) {
-      flat.push(node);
-      walk(node.children);
-    }
-  };
-  walk(nodes);
-  return (
-    <nav className="kiseki-overview" aria-label="branches">
-      {flat.map((node) => (
-        <button
-          key={node.key}
-          type="button"
-          style={{ "--kiseki-depth": node.depth } as CSSProperties}
-          onClick={() => onPick(node.key)}
-        >
-          <span className="kiseki-num kiseki-dim">{node.key}</span>
-          <span>{node.label}</span>
-          <span className="kiseki-num kiseki-dim">
-            {node.size} {node.size === 1 ? "step" : "steps"}
-          </span>
-          {unfolded.has(node.key) && <span className="kiseki-dim">open</span>}
-        </button>
-      ))}
-    </nav>
   );
 }
 
@@ -600,22 +657,6 @@ function ArrowIcon({ up }: { up?: boolean }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </svg>
-  );
-}
-
-function TreeIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true">
-      <path
-        d="M4 2.5v11M4 6h5M4 11h5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <circle cx="11" cy="6" r="1.6" fill="currentColor" />
-      <circle cx="11" cy="11" r="1.6" fill="currentColor" />
     </svg>
   );
 }

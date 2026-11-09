@@ -1,5 +1,5 @@
 import type { DiffFileInput } from "@pierre/diffs";
-import type { PairedCall, Patch, ViewStep } from "@tetraslam/kiseki-core";
+import { align, type PairedCall, type Patch, type ViewStep } from "@tetraslam/kiseki-core";
 import {
   type ComponentType,
   memo,
@@ -11,11 +11,11 @@ import {
   useState,
 } from "react";
 import { Streamdown } from "streamdown";
-import { callKey, patchKey, reasoningKey, useTrace } from "./context";
-import { formatDuration, oneLine, prettyJson, primaryArg, wordCount } from "./format";
-import { derivePatch, lineCounts, withFileHeader } from "./patches";
-import { useDelayed } from "./state";
-import type { PatchContent, PatchRendererProps, ToolRendererProps } from "./types";
+import { callKey, patchKey, useTrace } from "./context";
+import { wordCount } from "./format";
+import { derivePatch, lineCounts } from "./patches";
+import { ToolCallBlock } from "./tools";
+import type { PatchContent, ToolRendererProps } from "./types";
 
 export function Chevron() {
   return (
@@ -25,7 +25,7 @@ export function Chevron() {
   );
 }
 
-/** Grows its content in place on the morph curve. Closed content isn't mounted. */
+/** Grows its content in place on the open curve. Closed content isn't mounted. */
 export function Disclosure({ open, children }: { open: boolean; children: ReactNode }) {
   const [mounted, setMounted] = useState(open);
   useEffect(() => {
@@ -91,7 +91,7 @@ export const Markdown = memo(function Markdown({
 
 export function Message({ text, streaming }: { text: string; view: ViewStep; streaming: boolean }) {
   return (
-    <div className="kiseki-message" data-role="agent">
+    <div className="kiseki-message">
       <Markdown text={text} streaming={streaming} />
     </div>
   );
@@ -111,7 +111,7 @@ export function Reasoning({
     <div>
       <button type="button" className="kiseki-toggle" aria-expanded={expanded} onClick={onToggle}>
         <Chevron />
-        <span>reasoning</span>
+        <span>thought</span>
         <span className="kiseki-num">{wordCount(text)} words</span>
       </button>
       <Disclosure open={expanded}>
@@ -121,108 +121,7 @@ export function Reasoning({
   );
 }
 
-const statusLabel: Record<string, string> = {
-  error: "failed",
-  missing: "no result recorded",
-  pending: "running",
-};
-
-/** kiseki's tool call block: one line, expanding to input, output, and any patches. */
-export function ToolCallBlock(props: ToolRendererProps) {
-  const { call, observation, status, expanded, onToggle, payload, payloadState, patches } = props;
-  const arg = primaryArg(call.input);
-  const summary =
-    status === "pending"
-      ? undefined
-      : observation?.error
-        ? oneLine(observation.output_summary || observation.error, 120)
-        : observation?.output_summary
-          ? oneLine(observation.output_summary, 120)
-          : status === "missing"
-            ? statusLabel.missing
-            : undefined;
-  const showLoading = useDelayed(payloadState === "loading");
-  const inputText = call.input && Object.keys(call.input).length ? prettyJson(call.input) : "";
-  return (
-    <div className="kiseki-call" data-status={status} data-open={expanded || undefined}>
-      <button
-        type="button"
-        className="kiseki-call-line"
-        aria-expanded={expanded}
-        onClick={onToggle}
-      >
-        <span className="kiseki-dot" />
-        <span className="kiseki-call-name">{call.tool_name}</span>
-        {status === "pending" ? (
-          <span className="kiseki-call-arg">
-            <span className="kiseki-shimmer">{arg ? `running ${arg}` : "running…"}</span>
-          </span>
-        ) : (
-          <span className="kiseki-call-arg">{arg}</span>
-        )}
-        {summary && <span className="kiseki-call-summary">{summary}</span>}
-        <span className="kiseki-call-time kiseki-num">{formatDuration(call.duration_ms)}</span>
-      </button>
-      <Disclosure open={expanded}>
-        <div className="kiseki-call-detail">
-          {inputText && (
-            <div className="kiseki-field">
-              <span className="kiseki-field-label">input</span>
-              <pre className="kiseki-pre">{inputText}</pre>
-            </div>
-          )}
-          {observation?.error && (
-            <div className="kiseki-field">
-              <span className="kiseki-field-label">error</span>
-              <div className="kiseki-error kiseki-mono">{observation.error}</div>
-            </div>
-          )}
-          {observation?.output_summary && payload == null && (
-            <div className="kiseki-field">
-              <span className="kiseki-field-label">summary</span>
-              <div>{observation.output_summary}</div>
-            </div>
-          )}
-          {payload != null ? (
-            <div className="kiseki-field">
-              <span className="kiseki-field-label">output</span>
-              <pre className="kiseki-pre kiseki-output">{payload || " "}</pre>
-            </div>
-          ) : payloadState === "loading" ? (
-            <span className="kiseki-note">
-              {showLoading ? <span className="kiseki-shimmer">loading output</span> : " "}
-            </span>
-          ) : payloadState === "error" ? (
-            <span className="kiseki-note">couldn't load the output</span>
-          ) : status === "pending" ? (
-            <span className="kiseki-note">
-              <span className="kiseki-shimmer">waiting for the result</span>
-            </span>
-          ) : status === "missing" ? (
-            <span className="kiseki-note">the trace has no result for this call</span>
-          ) : null}
-          {patches.length > 0 && (
-            <div className="kiseki-field">
-              <span className="kiseki-field-label">
-                {patches.length === 1 ? "patch" : "patches"}
-              </span>
-              {patches.map((patch) => (
-                <PatchBlock
-                  key={patch.patch_id}
-                  patch={patch}
-                  stepKey={props.stepKey}
-                  call={props.paired}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </Disclosure>
-    </div>
-  );
-}
-
-/** Renders the call through the host's renderer for its tool, or kiseki's default. */
+/** Renders the call through the host's renderer for its tool, or kiseki's built-ins. */
 export function CallSlot({ view, paired }: { view: ViewStep; paired: PairedCall }) {
   const context = useTrace();
   const key = callKey(view.key, paired.call.tool_call_id);
@@ -282,16 +181,20 @@ function usePayload(view: ViewStep, paired: PairedCall, expanded: boolean) {
 }
 
 let diffsModule: Promise<typeof import("@pierre/diffs/react")> | undefined;
-/** @pierre/diffs loads the first time a patch opens. */
+let diffsLoaded: typeof import("@pierre/diffs/react") | undefined;
+/** @pierre/diffs loads the first time a diff is on screen. */
 export function loadDiffs() {
-  diffsModule ??= import("@pierre/diffs/react");
+  diffsModule ??= import("@pierre/diffs/react").then((module) => {
+    diffsLoaded = module;
+    return module;
+  });
   return diffsModule;
 }
 
+/** A patch the record has but no call claims: a line that opens to its diff. */
 export function PatchBlock({
   patch,
   stepKey,
-  call,
 }: {
   patch: Patch;
   stepKey: string;
@@ -300,7 +203,7 @@ export function PatchBlock({
   const context = useTrace();
   const key = patchKey(stepKey, patch.patch_id);
   const expanded = context.isExpanded(key);
-  const derived = derivePatch(patch, call);
+  const derived = derivePatch(patch);
   const [loaded, setLoaded] = useState<PatchContent | undefined | null>(undefined);
   useEffect(() => {
     if (!expanded || derived || !context.loadPatch || loaded !== undefined) return;
@@ -309,46 +212,47 @@ export function PatchBlock({
       () => setLoaded(null),
     );
   }, [expanded, derived, context.loadPatch, loaded, patch]);
-  // A patch on screen is one click from opening: warm the diff renderer while the browser idles.
-  useEffect(() => {
-    const idle = (globalThis as { requestIdleCallback?: (cb: () => void) => number })
-      .requestIdleCallback;
-    if (idle) idle(() => void loadDiffs().catch(() => {}));
-  }, []);
   const content = derived ?? loaded ?? undefined;
   const counts = content ? lineCounts(content) : undefined;
   const Custom = context.renderers.patch;
   return (
-    <div className="kiseki-patch">
+    <div className="kiseki-call">
       <button
         type="button"
-        className="kiseki-patch-line"
+        className="kiseki-call-line"
         aria-expanded={expanded}
         onClick={() => context.toggle(key)}
       >
         <Chevron />
-        <span className="kiseki-patch-path">
+        <span className="kiseki-result">
+          {counts ? (
+            <>
+              changed <span className="kiseki-add">+{counts.added}</span>{" "}
+              <span className="kiseki-del">−{counts.removed}</span>
+            </>
+          ) : (
+            "changed"
+          )}
+        </span>
+        <span className="kiseki-target kiseki-patch-path">
           <bdi dir="ltr">{patch.file_path}</bdi>
         </span>
-        {counts && (
-          <span className="kiseki-num">
-            <span className="kiseki-add">+{counts.added}</span>{" "}
-            <span className="kiseki-del">−{counts.removed}</span>
-          </span>
-        )}
+        <span className="kiseki-tool-name">patch</span>
       </button>
       <Disclosure open={expanded}>
-        <div className="kiseki-patch-body">
+        <div className="kiseki-call-body">
           {Custom ? (
-            <Custom patch={patch} call={call} content={content} />
+            <Custom patch={patch} content={content} />
           ) : content ? (
-            <DiffView patch={patch} content={content} />
+            <div className="kiseki-diff">
+              <DiffView path={patch.file_path} content={content} />
+            </div>
           ) : (
-            <div className="kiseki-call-detail kiseki-note">
+            <span className="kiseki-note">
               {context.loadPatch && loaded === undefined
                 ? " "
                 : "no diff content for this patch (snapshots only)"}
-            </div>
+            </span>
           )}
         </div>
       </Disclosure>
@@ -356,8 +260,47 @@ export function PatchBlock({
   );
 }
 
-function DiffView({ patch, content }: PatchRendererProps & { content: PatchContent }) {
-  const [module, setModule] = useState<Awaited<ReturnType<typeof loadDiffs>>>();
+/** Pixels per diff line, and the padding around them, matching @pierre/diffs' unwrapped layout. */
+export const DIFF_LINE = 19;
+export const DIFF_PAD = 16;
+
+/** Any patch content as the two sides of one snippet, so every diff lays out the same way. */
+export function diffSides(content: PatchContent): { before: string | null; after: string | null } {
+  if (content.patch == null) return { before: content.before, after: content.after };
+  const before: string[] = [];
+  const after: string[] = [];
+  for (const line of content.patch.split("\n")) {
+    if (/^(diff --git|index |Index: |===|--- |\+\+\+ |@@|\\ No newline)/.test(line)) continue;
+    if (line.startsWith("-")) before.push(line.slice(1));
+    else if (line.startsWith("+")) after.push(line.slice(1));
+    else {
+      before.push(line.slice(1));
+      after.push(line.slice(1));
+    }
+  }
+  while (before.at(-1) === "" && after.at(-1) === "") {
+    before.pop();
+    after.pop();
+  }
+  return { before: before.join("\n"), after: after.join("\n") };
+}
+
+/** How many lines the unified view shows: every line of both sides, shared ones once. */
+export function diffLines(sides: { before: string | null; after: string | null }): number {
+  const a = sides.before == null ? [] : sides.before.replace(/\n$/, "").split("\n");
+  const b = sides.after == null ? [] : sides.after.replace(/\n$/, "").split("\n");
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  return align(a, b).length;
+}
+
+/**
+ * A diff through @pierre/diffs, every line shown and none wrapped, so its height is known before
+ * it renders. Until the module arrives, the same lines show as plain text in a box of exactly
+ * that height: the swap moves nothing.
+ */
+export function DiffView({ path, content }: { path: string; content: PatchContent }) {
+  const [module, setModule] = useState(diffsLoaded);
   const [failed, setFailed] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const [scheme, setScheme] = useState<"light" | "dark">("light");
@@ -367,40 +310,38 @@ function DiffView({ patch, content }: PatchRendererProps & { content: PatchConte
     }
   }, []);
   useEffect(() => {
-    loadDiffs().then(setModule, () => setFailed(true));
-  }, []);
-  const showWait = useDelayed(!module && !failed);
+    if (!module) loadDiffs().then(setModule, () => setFailed(true));
+  }, [module]);
+  const sides = useMemo(() => diffSides(content), [content]);
+  const height = useMemo(() => diffLines(sides) * DIFF_LINE + DIFF_PAD, [sides]);
   const options = useMemo(
     () => ({
       theme: { dark: "pierre-dark", light: "pierre-light" },
       themeType: scheme,
       diffStyle: "unified" as const,
-      overflow: "wrap" as const,
+      overflow: "scroll" as const,
+      expandUnchanged: true,
       disableFileHeader: true,
+      lineDiffType: "word" as const,
     }),
     [scheme],
   );
   const files = useMemo((): DiffFileInput => {
-    const file = (contents: string) => ({ name: patch.file_path, contents });
-    if (content.before == null) return { oldFile: null, newFile: file(content.after ?? "") };
-    if (content.after == null) return { oldFile: file(content.before), newFile: null };
-    return { oldFile: file(content.before), newFile: file(content.after) };
-  }, [content.before, content.after, patch.file_path]);
+    // A trailing newline on both sides, so no "no newline at end of file" row appears.
+    const file = (contents: string) => ({
+      name: path,
+      contents: contents.endsWith("\n") ? contents : `${contents}\n`,
+    });
+    if (sides.before == null) return { oldFile: null, newFile: file(sides.after ?? "") };
+    if (sides.after == null) return { oldFile: file(sides.before), newFile: null };
+    return { oldFile: file(sides.before), newFile: file(sides.after) };
+  }, [sides, path]);
   return (
-    <div ref={ref}>
-      {failed ? (
-        <pre className="kiseki-pre">
-          {content.patch ?? `${content.before ?? ""}\n→\n${content.after ?? ""}`}
+    <div ref={ref} className="kiseki-diff-box" style={{ height }}>
+      {!module || failed ? (
+        <pre className="kiseki-diff-wait" style={{ height }}>
+          {plainDiff(sides)}
         </pre>
-      ) : !module ? (
-        <div className="kiseki-call-detail kiseki-note">
-          {showWait ? <span className="kiseki-shimmer">loading diff</span> : " "}
-        </div>
-      ) : content.patch != null ? (
-        <module.PatchDiff
-          patch={withFileHeader(content.patch, patch.file_path)}
-          options={options}
-        />
       ) : (
         <module.MultiFileDiff {...files} options={options} />
       )}
@@ -408,4 +349,18 @@ function DiffView({ patch, content }: PatchRendererProps & { content: PatchConte
   );
 }
 
-export { reasoningKey };
+function plainDiff(sides: { before: string | null; after: string | null }): string {
+  const a = sides.before == null ? [] : sides.before.split("\n");
+  const b = sides.after == null ? [] : sides.after.split("\n");
+  if (!a.length) return b.map((l) => `+ ${l}`).join("\n");
+  if (!b.length) return a.map((l) => `- ${l}`).join("\n");
+  return align(a, b)
+    .map((p) =>
+      p.a != null && p.b != null
+        ? `  ${a[p.a]}`
+        : p.a != null
+          ? `- ${a[p.a]}`
+          : `+ ${b[p.b as number]}`,
+    )
+    .join("\n");
+}

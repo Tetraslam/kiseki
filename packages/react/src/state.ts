@@ -1,4 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+
+const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+/** A ref that always holds the latest value, updated after each commit rather than during render. */
+export function useLatest<T>(value: T) {
+  const ref = useRef(value);
+  useIsomorphicLayoutEffect(() => {
+    ref.current = value;
+  });
+  return ref;
+}
 
 /** A value the host may control. Uncontrolled until `value` is passed. */
 export function useControllable<T>(
@@ -9,10 +20,8 @@ export function useControllable<T>(
   const [inner, setInner] = useState(initial);
   const controlled = value !== undefined;
   const current = controlled ? value : inner;
-  const latest = useRef(current);
-  latest.current = current;
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  const latest = useLatest(current);
+  const onChangeRef = useLatest(onChange);
   const set = useCallback(
     (next: T | ((prev: T) => T)) => {
       const resolved =

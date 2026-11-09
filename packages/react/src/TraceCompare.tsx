@@ -11,6 +11,7 @@ import {
 } from "@tetraslam/kiseki-core";
 import { type CSSProperties, useCallback, useMemo, useRef, useState } from "react";
 import { type PayloadEntry, TraceContext, type TraceContextValue } from "./context";
+import { findOutliers, guessWorkdir } from "./insight";
 import { StepRow } from "./StepRow";
 import { toggleIn } from "./state";
 import { TraceHeader } from "./TraceHeader";
@@ -21,6 +22,11 @@ export interface TraceCompareProps extends Pick<TraceLoaders, "loadPayload" | "l
   b: TraceRecord;
   renderers?: Renderers;
   theme?: "light" | "dark";
+  /**
+   * `container` (default) scrolls inside, virtualized. `page` grows with the document and renders
+   * every pair, so keep it for runs of a few hundred steps.
+   */
+  scroll?: "container" | "page";
   className?: string;
   style?: CSSProperties;
 }
@@ -37,6 +43,7 @@ export function TraceCompare({
   loadPayload,
   loadPatch,
   theme,
+  scroll = "container",
   className,
   style,
 }: TraceCompareProps) {
@@ -71,6 +78,8 @@ export function TraceCompare({
       payloads,
       traceModel: root.record.agent.model,
       root,
+      workdir: guessWorkdir(root),
+      outliers: findOutliers(root.steps),
     });
     return [contextFor(left), contextFor(right)];
   }, [left, right, expandedSet, renderers, loadPayload, loadPatch, toggle, payloads]);
@@ -97,6 +106,7 @@ export function TraceCompare({
           row={rows[position] as Row}
           selected={selected === (rows[position] as Row).view.key}
           match={false}
+          turn={false}
           branchState="loaded"
           onSelect={setSelected}
           onToggleBranch={noop}
@@ -110,6 +120,7 @@ export function TraceCompare({
       className={className ? `kiseki ${className}` : "kiseki"}
       style={style}
       data-theme={theme}
+      data-scroll={scroll}
       aria-label="trace comparison"
     >
       <div className="kiseki-compare-head">
@@ -124,42 +135,82 @@ export function TraceCompare({
           <button
             type="button"
             className="kiseki-toggle"
-            style={{ marginLeft: "auto" }}
-            onClick={() => virtualizer.scrollToIndex(divergence, { align: "start" })}
+            data-push=""
+            onClick={() => {
+              if (scroll === "container") virtualizer.scrollToIndex(divergence, { align: "start" });
+              else
+                document
+                  .querySelectorAll(".kiseki-pair[data-first-divergence]")[0]
+                  ?.scrollIntoView({ block: "center", behavior: "smooth" });
+            }}
           >
             jump to first divergence
           </button>
         )}
       </div>
-      <div className="kiseki-timeline">
-        <div className="kiseki-scroll" ref={scrollRef}>
-          <div className="kiseki-rows" style={{ height: virtualizer.getTotalSize() }}>
-            {virtualizer.getVirtualItems().map((item) => {
-              const pair = pairs[item.index] as AlignedPair;
-              const diverged = pair.a == null || pair.b == null;
-              return (
-                <div
-                  key={item.key}
-                  ref={virtualizer.measureElement}
-                  data-index={item.index}
-                  className="kiseki-row"
-                  style={{ transform: `translateY(${item.start}px)` }}
-                >
+      {scroll === "page" ? (
+        <div className="kiseki-rows">
+          {pairs.map((pair, index) => (
+            <Pair
+              key={`${pair.a ?? "-"}:${pair.b ?? "-"}`}
+              pair={pair}
+              first={index === divergence}
+              left={side(leftRows, pair.a, leftContext)}
+              right={side(rightRows, pair.b, rightContext)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="kiseki-timeline">
+          <div className="kiseki-scroll" ref={scrollRef}>
+            <div className="kiseki-rows" style={{ height: virtualizer.getTotalSize() }}>
+              {virtualizer.getVirtualItems().map((item) => {
+                const pair = pairs[item.index] as AlignedPair;
+                return (
                   <div
-                    className="kiseki-pair"
-                    data-diverged={diverged || undefined}
-                    data-first-divergence={item.index === divergence || undefined}
+                    key={item.key}
+                    ref={virtualizer.measureElement}
+                    data-index={item.index}
+                    className="kiseki-row"
+                    style={{ transform: `translateY(${item.start}px)` }}
                   >
-                    <div>{side(leftRows, pair.a, leftContext)}</div>
-                    <div>{side(rightRows, pair.b, rightContext)}</div>
+                    <Pair
+                      pair={pair}
+                      first={item.index === divergence}
+                      left={side(leftRows, pair.a, leftContext)}
+                      right={side(rightRows, pair.b, rightContext)}
+                    />
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </section>
+  );
+}
+
+function Pair({
+  pair,
+  first,
+  left,
+  right,
+}: {
+  pair: AlignedPair;
+  first: boolean;
+  left: React.ReactNode;
+  right: React.ReactNode;
+}) {
+  return (
+    <div
+      className="kiseki-pair"
+      data-diverged={pair.a == null || pair.b == null || undefined}
+      data-first-divergence={first || undefined}
+    >
+      <div>{left}</div>
+      <div>{right}</div>
+    </div>
   );
 }
 

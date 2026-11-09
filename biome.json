@@ -22,7 +22,20 @@
   },
   "linter": {
     "rules": {
-      "preset": "recommended"
+      "preset": "recommended",
+      "correctness": {
+        "useExhaustiveDependencies": {
+          "level": "error",
+          "options": {
+            "hooks": [
+              {
+                "name": "useLatest",
+                "stableResult": true
+              }
+            ]
+          }
+        }
+      }
     }
   },
   "assist": {
