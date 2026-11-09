@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Code } from "@/components/code";
 import { CopyCommand } from "@/components/copy-command";
 import { type Demo, Showcase } from "@/components/showcase";
-import { SiteBar } from "@/components/site-bar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { fixture } from "@/lib/fixtures";
 import { demos as list } from "@/lib/hero";
 import { packageRendererSource } from "@/lib/snippets";
@@ -11,7 +11,9 @@ import perf from "../../../../docs/perf-results.json";
 const usage = `import { Trace } from "@tetraslam/kiseki";
 import "@tetraslam/kiseki/styles.css";
 
-<Trace record={record} scroll="page" />`;
+<div style={{ height: 560 }}>
+  <Trace record={record} />
+</div>`;
 
 export default async function Home() {
   const demos: Demo[] = await Promise.all(
@@ -29,93 +31,80 @@ export default async function Home() {
     })),
   );
   return (
-    <div className="min-h-dvh">
-      <SiteBar />
-      <main className="mx-auto w-full max-w-[1160px] px-5 pb-24">
-        <section className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 pb-6 pt-8">
-          <div className="max-w-[62ch]">
-            <h1 className="text-[22px] font-semibold tracking-[-0.02em]">
-              read what your agent did, turn by turn.
+    <>
+      <Showcase
+        demos={demos}
+        intro={
+          <div>
+            <h1 className="flex items-end gap-3">
+              <span className="font-display text-[88px] font-extrabold leading-[0.82] tracking-[-0.04em]">
+                軌跡
+              </span>
+              <span className="pb-1 text-[15px] font-medium tracking-tight text-white/80">
+                kiseki
+              </span>
             </h1>
-            <p className="mt-1.5 text-[14.5px] leading-relaxed text-ink-2">
-              kiseki is a react component for agent traces: reasoning, tool calls, diffs, and
-              subagents, live or after the fact. below is a real run, rendered by it.
+            <p className="mt-6 text-[19px] font-medium leading-[1.3] tracking-[-0.01em]">
+              the trace an agent leaves behind, made readable.
             </p>
+            <p className="mt-2.5 text-[13.5px] leading-relaxed text-white/65">
+              a react component for agent runs: every turn, its reasoning, the tools it called, and
+              the diffs it made. drop it into your chat, admin page, or eval harness.
+            </p>
+            <div className="mt-5">
+              <CopyCommand command="pnpm add @tetraslam/kiseki" tone="dye" />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <CopyCommand command="pnpm add @tetraslam/kiseki" />
-            <Link
-              href="/docs"
-              className="inline-flex h-9 items-center rounded-[6px] px-3 text-[13px] text-ink-2 ring-1 ring-line transition-colors duration-[90ms] hover:bg-muted hover:text-foreground"
-            >
+        }
+        footer={
+          <div className="flex items-center gap-4 text-[12.5px] text-white/60">
+            <Link href="/docs" className="hover:text-white">
               docs
             </Link>
-            <Link
-              href="/llms.txt"
-              className="inline-flex h-9 items-center rounded-[6px] px-3 text-[13px] text-ink-2 ring-1 ring-line transition-colors duration-[90ms] hover:bg-muted hover:text-foreground"
-            >
+            <a href="https://github.com/tetraslam/kiseki" className="hover:text-white">
+              github
+            </a>
+            <Link href="/llms.txt" className="hover:text-white">
               for agents
             </Link>
+            <span className="ml-auto">
+              <ThemeToggle />
+            </span>
           </div>
-        </section>
-
-        <Showcase demos={demos} />
-
-        <section className="mt-20 grid gap-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
-          <div className="max-w-[46ch]">
-            <h2 className="text-[17px] font-semibold tracking-tight">your app keeps the job</h2>
-            <p className="mt-2.5 text-[14.5px] leading-relaxed text-ink-2">
-              kiseki has built-in views for the tools every agent has: edits as diffs, shell runs
-              with their exit status and test counts, reads, searches, and writes. for your own
-              tools, pass a component per tool name. it gets the call, its result, and kiseki&apos;s
-              own view to fall back on. the custom renderer demo above uses exactly this.
-            </p>
-          </div>
+        }
+      />
+      <section className="mx-auto grid w-full max-w-[1200px] gap-8 px-6 py-14 md:grid-cols-3">
+        <div className="max-w-[44ch]">
+          <h2 className="text-[15px] font-semibold tracking-tight">your app keeps the job</h2>
+          <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
+            edits render as diffs, shell runs as pass and fail, reads as line ranges. your own tools
+            get your own components; the custom renderer demo draws npm results as cards.
+          </p>
+        </div>
+        <div className="md:col-span-2">
           <Code code={packageRendererSource} />
-        </section>
-
-        <section className="mt-16 grid gap-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
-          <div className="max-w-[46ch]">
-            <h2 className="text-[17px] font-semibold tracking-tight">any run, one record</h2>
-            <p className="mt-2.5 text-[14.5px] leading-relaxed text-ink-2">
-              kiseki reads{" "}
-              <a
-                className="underline decoration-line-2 underline-offset-2 hover:decoration-current"
-                href="https://www.opentraces.ai/schema/latest"
-              >
-                opentraces 0.9
-              </a>
-              . adapters convert ai sdk steps (record them from{" "}
-              <code className="font-mono text-[13px]">onStepFinish</code>), claude code, opencode,
-              codex, and pi sessions. drop one of those files on this page to read it here; nothing
-              is uploaded.
-            </p>
-          </div>
-          <Code code={usage} />
-        </section>
-
-        <section className="mt-16 max-w-[72ch]">
-          <h2 className="text-[17px] font-semibold tracking-tight">measured, not claimed</h2>
-          <p className="mt-2.5 text-[14.5px] leading-relaxed text-ink-2">
-            on a generated {perf.steps.toLocaleString()}-step trace, the first rows paint{" "}
+        </div>
+        <div className="max-w-[44ch]">
+          <h2 className="text-[15px] font-semibold tracking-tight">one component, sized by you</h2>
+          <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
+            it fills the box you give it and scrolls inside, virtualized: 10,000 steps paint their
+            first rows in{" "}
             <span className="font-mono text-foreground">
               {Math.round(perf.firstRowsMedianMs)}ms
-            </span>{" "}
-            after the record is parsed, and nothing shifts while scrolling, expanding, or streaming
-            (layout shift <span className="font-mono text-foreground">{perf.cls.toFixed(3)}</span>).
-            diffs load only when one is on screen. the perf script and its results are in the repo.
+            </span>
+            , and nothing shifts.
           </p>
-        </section>
-      </main>
-      <footer className="mx-auto flex w-full max-w-[1160px] flex-wrap gap-x-6 gap-y-2 px-5 pb-10 text-xs text-ink-3">
+        </div>
+        <div className="md:col-span-2">
+          <Code code={usage} />
+        </div>
+      </section>
+      <footer className="mx-auto flex w-full max-w-[1200px] gap-6 px-6 pb-10 text-xs text-ink-3">
         <span>mit</span>
         <a href="https://github.com/tetraslam/kiseki" className="hover:text-foreground">
           github.com/tetraslam/kiseki
         </a>
-        <Link href="/docs" className="hover:text-foreground">
-          docs
-        </Link>
       </footer>
-    </div>
+    </>
   );
 }

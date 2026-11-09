@@ -1,13 +1,11 @@
 "use client";
 
 import { Trace, TraceCompare, type TraceRecord } from "@tetraslam/kiseki";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { type Dropped, readTraceFile } from "@/lib/read-file";
 import { packageRenderers } from "@/lib/renderers";
-import { DropField } from "./drop-field";
+import { DropField, OpenFile } from "./drop-field";
 
 export interface Demo {
   id: string;
@@ -21,13 +19,20 @@ export interface Demo {
 }
 
 /**
- * The demos, each a real recorded run. The trace scrolls with the page; its trajectory and
- * search stay pinned while you read.
+ * The first screen: the dyed panel (name, line, the demo picker) and the trace in a window
+ * beside it, the way it sits inside a chat or a tool. Nothing on this screen scrolls the page.
  */
-export function Showcase({ demos }: { demos: Demo[] }) {
+export function Showcase({
+  demos,
+  intro,
+  footer,
+}: {
+  demos: Demo[];
+  intro: ReactNode;
+  footer: ReactNode;
+}) {
   const [tab, setTab] = useState(demos[0]?.id ?? "");
   const [dropped, setDropped] = useState<Dropped | null>(null);
-  const top = useRef<HTMLDivElement>(null);
 
   const onFile = useCallback(async (file: File) => {
     const id = toast.loading(`reading ${file.name}`);
@@ -35,7 +40,6 @@ export function Showcase({ demos }: { demos: Demo[] }) {
       const result = await readTraceFile(file);
       setDropped(result);
       setTab("file");
-      top.current?.scrollIntoView({ block: "start" });
       toast.success(
         `${result.format}: ${result.records[0]?.steps?.length ?? 0} steps${result.issues.length ? `, ${result.issues.length} issues` : ""}`,
         { id },
@@ -46,39 +50,86 @@ export function Showcase({ demos }: { demos: Demo[] }) {
   }, []);
 
   const demo = demos.find((d) => d.id === tab);
-  const note = tab === "file" ? `${dropped?.format} file, read in your browser.` : demo?.note;
   return (
     <DropField onFile={onFile}>
-      <div ref={top} className="scroll-mt-4">
-        <Tabs value={tab} onValueChange={(value) => setTab(String(value))}>
-          <TabsList className="flex-wrap">
+      <div className="grid min-h-dvh gap-3 p-3 lg:h-dvh lg:grid-cols-[minmax(340px,400px)_minmax(0,1fr)]">
+        <aside className="aizome relative flex flex-col overflow-hidden rounded-[14px] p-7 text-white">
+          {intro}
+          <nav className="mt-8 grid gap-0.5" aria-label="demos">
+            <span className="mb-1.5 text-[11px] tracking-[0.08em] text-white/50">real runs</span>
             {demos.map((d) => (
-              <TabsTrigger key={d.id} value={d.id}>
-                {d.label}
-              </TabsTrigger>
+              <DemoButton
+                key={d.id}
+                active={tab === d.id}
+                onClick={() => setTab(d.id)}
+                label={d.label}
+                note={d.note}
+              />
             ))}
-            {dropped && <TabsTrigger value="file">{dropped.name}</TabsTrigger>}
-          </TabsList>
-        </Tabs>
-        <p className="mt-2 mb-3 max-w-[80ch] text-[13px] text-ink-3">{note}</p>
-      </div>
-      <div className="overflow-clip rounded-[10px] ring-1 ring-line">
-        {tab === "file" && dropped?.records[0] ? (
-          <Trace key={`file:${dropped.name}`} record={dropped.records[0]} scroll="page" />
-        ) : demo?.compare ? (
-          <TraceCompare a={demo.compare[0]} b={demo.compare[1]} scroll="page" />
-        ) : demo?.live && demo.record ? (
-          <LiveReplay source={demo.record} />
-        ) : demo?.record ? (
-          <Trace
-            key={demo.id}
-            record={demo.record}
-            scroll="page"
-            renderers={demo.custom ? packageRenderers : undefined}
-          />
-        ) : null}
+            {dropped && (
+              <DemoButton
+                active={tab === "file"}
+                onClick={() => setTab("file")}
+                label={dropped.name}
+                note={`${dropped.format}, read in your browser`}
+              />
+            )}
+          </nav>
+          <p className="mt-5 text-[12.5px] leading-relaxed text-white/60">
+            or drop your own: opentraces, claude code, opencode, codex, pi.{" "}
+            <OpenFile onFile={onFile}>open a file</OpenFile>. nothing leaves your browser.
+          </p>
+          <div className="mt-auto pt-8">{footer}</div>
+        </aside>
+        <section
+          className="h-[78dvh] min-h-0 overflow-hidden rounded-[14px] ring-1 ring-line lg:h-auto"
+          aria-label="trace"
+        >
+          {tab === "file" && dropped?.records[0] ? (
+            <Trace key={`file:${dropped.name}`} record={dropped.records[0]} />
+          ) : demo?.compare ? (
+            <TraceCompare a={demo.compare[0]} b={demo.compare[1]} />
+          ) : demo?.live && demo.record ? (
+            <LiveReplay source={demo.record} />
+          ) : demo?.record ? (
+            <Trace
+              key={demo.id}
+              record={demo.record}
+              renderers={demo.custom ? packageRenderers : undefined}
+            />
+          ) : null}
+        </section>
       </div>
     </DropField>
+  );
+}
+
+function DemoButton({
+  active,
+  onClick,
+  label,
+  note,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  note: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className="group grid gap-0.5 rounded-[8px] px-3 py-2 text-left transition-colors duration-[90ms] ease-track hover:bg-white/[0.07] aria-pressed:bg-white/[0.12]"
+    >
+      <span className="flex items-center gap-2 text-[14px] font-medium">
+        <span className="size-1.5 rounded-full bg-white/25 transition-colors group-aria-pressed:bg-white" />
+        {label}
+      </span>
+      <span className="line-clamp-2 pl-3.5 text-[12px] leading-snug text-white/55 group-aria-pressed:text-white/75">
+        {note}
+      </span>
+    </button>
   );
 }
 
@@ -88,10 +139,16 @@ function LiveReplay({ source }: { source: TraceRecord }) {
   const [run, setRun] = useState(0);
   const total = source.steps?.length ?? 0;
   useEffect(() => {
-    if (count >= total) return;
+    if (count >= total) {
+      // Pause on the finished run, then play it again.
+      const again = setTimeout(() => {
+        setCount(1);
+        setRun((r) => r + 1);
+      }, 6000);
+      return () => clearTimeout(again);
+    }
     const step = source.steps?.[count - 1];
     const next = source.steps?.[count];
-    // Real gaps between steps, capped so the replay doesn't stall.
     const gap =
       step?.timestamp && next?.timestamp
         ? Date.parse(next.timestamp) - Date.parse(step.timestamp)
@@ -101,7 +158,6 @@ function LiveReplay({ source }: { source: TraceRecord }) {
   }, [source, count, total]);
   const running = count < total;
   const steps = (source.steps ?? []).slice(0, count);
-  // The newest step's calls are still running: hold back their results.
   const growing = steps.map((step, i) =>
     i === steps.length - 1 && running ? { ...step, observations: [] } : step,
   );
@@ -114,23 +170,5 @@ function LiveReplay({ source }: { source: TraceRecord }) {
         metrics: undefined,
       }
     : source;
-  return (
-    <div>
-      <Trace key={run} record={record} live={running} scroll="page" />
-      {!running && (
-        <div className="flex justify-end border-t border-line px-4 py-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setCount(1);
-              setRun((r) => r + 1);
-            }}
-          >
-            replay
-          </Button>
-        </div>
-      )}
-    </div>
-  );
+  return <Trace key={run} record={record} live={running} />;
 }

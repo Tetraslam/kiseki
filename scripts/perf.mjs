@@ -197,8 +197,7 @@ console.error("4. Opening", JSON.stringify(results));
       .map((el) => {
         const box = el.firstElementChild;
         return {
-          reserved: Number.parseFloat(box?.style.height ?? "0"),
-          natural: Math.round(box?.scrollHeight ?? 0),
+          reserved: Number(box?.dataset.fullHeight ?? 0),
           actual: Math.round(box?.firstElementChild?.getBoundingClientRect().height ?? 0),
         };
       }),
@@ -248,15 +247,19 @@ console.error("5. Streaming", JSON.stringify(results));
   await context.close();
 }
 
-// 6. The site: the demo scrolls with the page, and opening or closing a call keeps it in place.
+// 6. The site: the trace scrolls inside its window, never the page, and opening or closing a
+//    call keeps the clicked line in place.
 {
   const context = await browser.newContext({ viewport: { width: 1360, height: 900 } });
   const page = await context.newPage();
   await page.addInitScript(observe);
   await page.goto(`${base}/`);
   await page.waitForTimeout(800);
+  const box = await page.locator("section[aria-label=trace] .kiseki-scroll").boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.wheel(0, 1400);
   await page.waitForTimeout(500);
+  results.sitePageScrolledPx = await page.evaluate(() => Math.round(scrollY));
   const drift = [];
   for (let i = 0; i < 6; i++) {
     const el = (
@@ -298,7 +301,7 @@ const budget = {
     results.scrollSettleMovePx < 1,
   lazyDiffs: !results.diffsLazy.traceWithoutEdits && results.diffHeightErrorPx < 1,
   following: results.followGapPx <= 8,
-  siteAnchored: results.siteAnchorDriftPx < 1 && !results.siteNestedScroller,
+  siteAnchored: results.siteAnchorDriftPx < 1 && results.sitePageScrolledPx === 0,
 };
 const report = { ...results, budget, measuredAt: new Date().toISOString() };
 writeFileSync("docs/perf-results.json", `${JSON.stringify(report, null, 2)}\n`);

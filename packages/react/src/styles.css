@@ -52,7 +52,20 @@
   --diffs-font-size: 12px;
   --diffs-line-height: 19px;
   --diffs-light-bg: var(--kiseki-raised);
-  --diffs-dark-bg: var(--kiseki-sunken);
+  --diffs-dark-bg: var(--kiseki-raised);
+  /* Quiet diffs: a whisper of green and red, as diffs.com does it, so a long edit doesn't shout. */
+  --diffs-bg-addition-override: color-mix(in srgb, var(--kiseki-raised) 55%, var(--kiseki-add));
+  --diffs-bg-deletion-override: color-mix(in srgb, var(--kiseki-raised) 55%, var(--kiseki-del));
+  --diffs-bg-addition-number-override: color-mix(
+    in srgb,
+    var(--kiseki-raised) 55%,
+    var(--kiseki-add)
+  );
+  --diffs-bg-deletion-number-override: color-mix(
+    in srgb,
+    var(--kiseki-raised) 55%,
+    var(--kiseki-del)
+  );
 }
 
 :where(.dark, [data-theme="dark"]) :where(.kiseki:not([data-theme="light"])),
@@ -490,7 +503,8 @@
 
 .kiseki-step {
   --kiseki-depth: 0;
-  padding: 0 20px 10px;
+  min-height: 60px;
+  padding: 12px 20px 6px 52px;
   position: relative;
 }
 
@@ -518,101 +532,75 @@
   background-repeat: repeat-x;
 }
 
-/* the turn rule: number, label, a hairline, then numbers and time */
-.kiseki-rule {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 30px;
-  margin-bottom: -2px;
-  color: var(--kiseki-ink-3);
-  font-size: var(--kiseki-size-tiny);
-}
-
-.kiseki-rule-num {
-  flex: none;
-  padding: 1px 4px;
-  margin-left: -4px;
-  border-radius: 4px;
-  letter-spacing: 0.02em;
-  transition: color var(--kiseki-fast) var(--kiseki-track);
-}
-
-.kiseki-rule-label {
-  flex: none;
-  color: var(--kiseki-ink-2);
-}
-
-.kiseki-step[data-role="user"]:not([data-depth]) .kiseki-rule-label {
-  color: var(--kiseki-ink);
-}
-
-.kiseki-rule-line {
-  flex: 1;
-  height: 1px;
-  background: var(--kiseki-line-1);
-  transition: background var(--kiseki-fast) var(--kiseki-track);
-}
-
-.kiseki-step:hover .kiseki-rule-line {
-  background: var(--kiseki-line-2);
-}
-
-.kiseki-rule-meta {
-  flex: none;
-  position: relative;
-  font-variant-numeric: tabular-nums;
-}
-
-.kiseki-rule-extra {
+/* the gutter: turn number, elapsed time, and (on hover, or when they stand out) duration and tokens */
+.kiseki-gutter {
   position: absolute;
-  right: 100%;
-  top: 50%;
-  translate: 0 -50%;
-  display: flex;
-  gap: 10px;
-  padding: 0 10px;
-  white-space: nowrap;
-  background: var(--kiseki-bg);
+  top: 14px;
+  left: 0;
+  width: 52px;
+  padding-right: 12px;
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+  font-size: 10.5px;
+  line-height: 14px;
+  color: var(--kiseki-ink-3);
+  user-select: none;
   pointer-events: none;
 }
 
-.kiseki-rule-extra > span {
+.kiseki-gutter-num {
+  color: var(--kiseki-ink-3);
+  transition: color var(--kiseki-fast) var(--kiseki-track);
+}
+
+.kiseki-gutter-time {
+  opacity: 0.6;
+}
+
+.kiseki-gutter-extra {
+  display: grid;
+  justify-items: end;
+}
+
+.kiseki-gutter-extra > span {
   opacity: 0;
   transition: opacity var(--kiseki-fast) var(--kiseki-track);
 }
 
-.kiseki-rule-extra:not(:has([data-outlier])) {
-  background: transparent;
-}
-
-.kiseki-step:hover .kiseki-rule-extra,
-.kiseki-step[data-selected] .kiseki-rule-extra {
-  background: var(--kiseki-bg);
-}
-
-.kiseki-step:hover .kiseki-rule-extra > span,
-.kiseki-step[data-selected] .kiseki-rule-extra > span,
-.kiseki-rule-extra > [data-outlier] {
+.kiseki-step:hover .kiseki-gutter-extra > span,
+.kiseki-step[data-selected] .kiseki-gutter-extra > span,
+.kiseki-gutter-extra > [data-outlier] {
   opacity: 1;
 }
 
-.kiseki-rule-extra > [data-outlier] {
+.kiseki-gutter-extra > [data-outlier] {
   color: var(--kiseki-ink);
 }
 
-.kiseki-step[data-selected] .kiseki-rule-num {
+.kiseki-step:hover .kiseki-gutter-num {
+  color: var(--kiseki-ink-2);
+}
+
+.kiseki-step[data-selected] .kiseki-gutter-num,
+.kiseki-step[data-match] .kiseki-gutter-num {
   color: var(--kiseki-accent-ink);
 }
 
-.kiseki-step[data-selected] .kiseki-rule-line {
+.kiseki-step[data-selected]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 1px;
   background: var(--kiseki-accent);
-  opacity: 0.55;
 }
 
-.kiseki-step[data-match] .kiseki-rule-num {
-  color: var(--kiseki-accent-ink);
-  background: var(--kiseki-accent-wash);
+.kiseki-label {
+  color: var(--kiseki-ink-3);
+  font-size: var(--kiseki-size-tiny);
 }
 
 .kiseki-cursor {
@@ -892,22 +880,27 @@
   visibility: hidden;
 }
 
-.kiseki-tag {
+/* the tool's name: plain receded mono; only failures get emphasis */
+.kiseki-tool {
   flex: none;
-  height: 18px;
-  padding: 0 6px;
-  border-radius: 4px;
-  box-shadow: inset 0 0 0 1px var(--kiseki-line-2);
   font-family: var(--kiseki-mono);
-  font-size: 10.5px;
-  line-height: 18px;
-  color: var(--kiseki-ink-2);
+  font-size: 11px;
+  color: var(--kiseki-ink-3);
 }
 
-.kiseki-call[data-status="error"] .kiseki-tag,
-.kiseki-call[data-failed] .kiseki-tag {
+.kiseki-call[data-status="error"] .kiseki-tool,
+.kiseki-call[data-failed] .kiseki-tool {
   color: var(--kiseki-danger);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kiseki-danger) 40%, transparent);
+}
+
+.kiseki-inline-result {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--kiseki-ink-3);
+  font-size: var(--kiseki-size-small);
 }
 
 .kiseki-target {
@@ -934,6 +927,7 @@
   gap: 8px;
   min-height: 20px;
   padding-left: 18px;
+  font-variant-numeric: tabular-nums;
   margin-top: -4px;
   margin-bottom: 2px;
   font-size: var(--kiseki-size-small);
@@ -1090,6 +1084,34 @@
 
 .kiseki-diff-box {
   overflow: clip;
+  position: relative;
+}
+
+.kiseki-diff-box[data-capped]::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 40px;
+  background: linear-gradient(to bottom, transparent, var(--kiseki-raised));
+  pointer-events: none;
+}
+
+.kiseki-diff-more {
+  display: block;
+  width: 100%;
+  height: 26px;
+  border-top: 1px solid var(--kiseki-line-1);
+  color: var(--kiseki-ink-3);
+  font-size: var(--kiseki-size-tiny);
+  text-align: center;
+  transition:
+    background var(--kiseki-fast) var(--kiseki-track),
+    color var(--kiseki-fast) var(--kiseki-track);
+}
+
+.kiseki-diff-more:hover {
+  background: var(--kiseki-hover);
+  color: var(--kiseki-ink-2);
 }
 
 .kiseki-diff-wait {

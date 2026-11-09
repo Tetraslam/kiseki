@@ -145,15 +145,31 @@ interface FrameProps {
   children?: (open: boolean) => ReactNode;
   /** Whether the body shows before anyone clicks. */
   defaultOpen?: boolean;
+  /**
+   * The result carries information worth its own line (failures, errors, matches). Otherwise it
+   * sits on the right of the call line, quiet.
+   */
+  detail?: boolean;
 }
 
 /**
- * One tool call as a compact line: a toggle, the tool's name as a small tag, what it acted on,
- * and how long it took. The result sits quieter beneath it; the full output opens on demand.
+ * One tool call as one compact line: a toggle, the tool's name in receded mono, what it acted
+ * on, a trivial result, and how long it took. Results that carry information (failures, errors,
+ * matches) get a quiet second line; the full output opens on demand.
  */
-function Frame({ props, result, target, failed, children, defaultOpen = false }: FrameProps) {
+function Frame({
+  props,
+  result,
+  target,
+  failed,
+  children,
+  defaultOpen = false,
+  detail,
+}: FrameProps) {
   const open = defaultOpen !== props.expanded;
   const hasBody = children != null;
+  const hasResult = result != null && result !== "";
+  const below = hasResult && (detail || failed || props.status === "error");
   return (
     <div className="kiseki-call" data-status={props.status} data-failed={failed || undefined}>
       <button
@@ -167,13 +183,14 @@ function Frame({ props, result, target, failed, children, defaultOpen = false }:
             <path d="M3.5 2 6.5 5l-3 3" fill="none" stroke="currentColor" strokeWidth="1.3" />
           </svg>
         </span>
-        <span className="kiseki-tag">{props.call.tool_name}</span>
+        <span className="kiseki-tool">{props.call.tool_name}</span>
         <span className="kiseki-target">{target}</span>
+        {hasResult && !below && <span className="kiseki-inline-result">{result}</span>}
         <span className="kiseki-call-time kiseki-num">
           {formatDuration(props.call.duration_ms)}
         </span>
       </button>
-      {result != null && result !== "" && (
+      {below && (
         <div className="kiseki-result">
           <Glyph status={props.status} failed={failed} />
           <span className="kiseki-result-text">{result}</span>
@@ -330,7 +347,11 @@ export function ReadCall(props: ToolRendererProps) {
     ) : entries ? (
       `${Number(entries[2]) - Number(entries[1]) + 1} entries`
     ) : range ? (
-      `lines ${range[1]}–${range[2]}`
+      range[1] === range[2] ? (
+        `line ${range[1]}`
+      ) : (
+        `lines ${range[1]}–${range[2]}`
+      )
     ) : typeof offset === "number" ? (
       `from line ${offset}${typeof limit === "number" ? `, ${limit} lines` : ""}`
     ) : (
@@ -378,12 +399,21 @@ export function GrepCall(props: ToolRendererProps) {
     ) : count === 0 ? (
       "no matches"
     ) : (
-      `${count} ${count === 1 ? "match" : "matches"}`
+      <>
+        {`${count} ${count === 1 ? "match" : "matches"}`}
+        {matches[0] && (
+          <span className="kiseki-dim kiseki-mono">
+            {" "}
+            {oneLine(relativeLine(matches[0], relative), 110)}
+          </span>
+        )}
+      </>
     );
   return (
     <Frame
       props={props}
       result={result}
+      detail={count > 0 && matches.length > 0}
       target={
         <>
           {pattern}
@@ -492,7 +522,11 @@ export function EditCall(props: ToolRendererProps) {
             {patches.map((p) =>
               p.content ? (
                 <div key={p.key} className="kiseki-diff">
-                  <DiffView path={relative(p.path)} content={p.content} />
+                  <DiffView
+                    path={relative(p.path)}
+                    content={p.content}
+                    expandKey={`${props.stepKey}#diff:${p.key}`}
+                  />
                 </div>
               ) : (
                 <span key={p.key} className="kiseki-note">
@@ -625,7 +659,7 @@ export function GenericCall(props: ToolRendererProps) {
     );
   const showLoading = useDelayed(props.payloadState === "loading");
   return (
-    <Frame props={props} result={result} target={inputPreview(props.call.input)}>
+    <Frame props={props} result={result} target={inputPreview(props.call.input)} detail={!!summary}>
       {(open) =>
         open ? (
           <div className="kiseki-call-body">

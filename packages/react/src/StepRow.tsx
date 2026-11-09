@@ -78,38 +78,36 @@ export const StepRow = memo(function StepRow({
       data-prose={context.prose}
       onClick={() => onSelect(view.key)}
     >
+      {/* The turn's number and time sit in the gutter; turns separate by spacing, not rules. */}
+      <div className="kiseki-gutter kiseki-num" aria-hidden="true">
+        <span
+          className="kiseki-gutter-num"
+          {...(timing ? { elementtiming: "kiseki-first-row" } : {})}
+        >
+          {String(view.position).padStart(2, "0")}
+        </span>
+        {time && <span className="kiseki-gutter-time">{time}</span>}
+        <span className="kiseki-gutter-extra" title={model || undefined}>
+          {view.durationMs != null && (
+            <span data-outlier={outliers.duration.has(view.key) || undefined}>
+              {formatDuration(view.durationMs)}
+            </span>
+          )}
+          {totalTokens > 0 && (
+            <span data-outlier={outliers.tokens.has(view.key) || undefined}>
+              {formatTokens(totalTokens)}
+            </span>
+          )}
+        </span>
+      </div>
       <div
         className="kiseki-body"
         data-depth={row.depth || undefined}
         style={{ "--kiseki-depth": row.depth } as React.CSSProperties}
       >
-        <div className="kiseki-rule">
-          <span
-            className="kiseki-rule-num kiseki-num"
-            {...(timing ? { elementtiming: "kiseki-first-row" } : {})}
-          >
-            {String(view.position).padStart(2, "0")}
-          </span>
-          {label && <span className="kiseki-rule-label">{label}</span>}
-          <span className="kiseki-rule-line" />
-          <span className="kiseki-rule-meta kiseki-num">
-            {/* Floats over the hairline, so showing it on hover moves nothing. */}
-            <span className="kiseki-rule-extra">
-              {model && <span>{model}</span>}
-              {totalTokens > 0 && (
-                <span data-outlier={outliers.tokens.has(view.key) || undefined}>
-                  {formatTokens(totalTokens)} tok
-                </span>
-              )}
-              {view.durationMs != null && (
-                <span data-outlier={outliers.duration.has(view.key) || undefined}>
-                  {formatDuration(view.durationMs)}
-                </span>
-              )}
-            </span>
-            {time}
-          </span>
-        </div>
+        {(subagentPrompt || step.role === "system") && (
+          <span className="kiseki-label">{label}</span>
+        )}
         {step.role === "system" && step.content ? (
           SystemRenderer ? (
             <SystemRenderer view={view} row={row} trace={trace} />

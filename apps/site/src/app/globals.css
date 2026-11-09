@@ -200,3 +200,45 @@
   font-weight: 600;
   color: var(--ink);
 }
+
+/*
+ * aizome: the site's brand surface, cloth dyed in indigo. Deep and dusty, with a woven grain and
+ * the uneven bloom of a dye bath. The component itself never uses it.
+ */
+:root {
+  --ai-deep: #14254a;
+}
+
+.aizome {
+  background:
+    radial-gradient(110% 70% at 0% 0%, rgb(58 104 160 / 0.55), transparent 62%),
+    radial-gradient(80% 60% at 100% 100%, rgb(6 12 28 / 0.7), transparent 70%),
+    radial-gradient(60% 40% at 80% 20%, rgb(95 167 204 / 0.18), transparent 70%), var(--ai-deep);
+  isolation: isolate;
+}
+
+/* woven grain: two hairline weaves and a dye noise, all very faint */
+.aizome::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.55;
+  background-image:
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 0.025) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 0.06) 0 1px, transparent 1px 3px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* the dye's edge: a soft shibori band across the lower panel */
+.aizome::after {
+  content: "";
+  position: absolute;
+  inset: auto -20% -30% -20%;
+  height: 55%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(50% 60% at 50% 50%, rgb(4 9 22 / 0.55), transparent 70%);
+  filter: blur(8px);
+}

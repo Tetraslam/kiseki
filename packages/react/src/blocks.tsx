@@ -250,7 +250,7 @@ export function PatchBlock({
             <Custom patch={patch} content={content} />
           ) : content ? (
             <div className="kiseki-diff">
-              <DiffView path={patch.file_path} content={content} />
+              <DiffView path={patch.file_path} content={content} expandKey={`${key}:all`} />
             </div>
           ) : (
             <span className="kiseki-note">
@@ -304,7 +304,20 @@ export function diffLines(sides: { before: string | null; after: string | null }
  * it renders. Until the module arrives, the same lines show as plain text in a box of exactly
  * that height: the swap moves nothing.
  */
-export function DiffView({ path, content }: { path: string; content: PatchContent }) {
+/** Inline diffs show this many lines, then "show all". */
+export const DIFF_CAP = 12;
+
+export function DiffView({
+  path,
+  content,
+  expandKey,
+}: {
+  path: string;
+  content: PatchContent;
+  /** Expansion key for "show all"; kept in the trace's state so the row's height survives scrolling. */
+  expandKey?: string;
+}) {
+  const context = useTrace();
   const [module, setModule] = useState(diffsLoaded);
   const [failed, setFailed] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -318,7 +331,11 @@ export function DiffView({ path, content }: { path: string; content: PatchConten
     if (!module) loadDiffs().then(setModule, () => setFailed(true));
   }, [module]);
   const sides = useMemo(() => diffSides(content), [content]);
-  const height = useMemo(() => diffLines(sides) * DIFF_LINE + DIFF_PAD, [sides]);
+  const lineCount = useMemo(() => diffLines(sides), [sides]);
+  const full = lineCount * DIFF_LINE + DIFF_PAD;
+  const capped = lineCount > DIFF_CAP + 3;
+  const showAll = !capped || (expandKey ? context.isExpanded(expandKey) : false);
+  const height = showAll ? full : DIFF_CAP * DIFF_LINE + DIFF_PAD;
   const options = useMemo(
     () => ({
       theme: { dark: "pierre-dark", light: "pierre-light" },
@@ -342,15 +359,36 @@ export function DiffView({ path, content }: { path: string; content: PatchConten
     return { oldFile: file(sides.before), newFile: file(sides.after) };
   }, [sides, path]);
   return (
-    <div ref={ref} className="kiseki-diff-box" style={{ height }}>
-      {!module || failed ? (
-        <pre className="kiseki-diff-wait" style={{ height }}>
-          {plainDiff(sides)}
-        </pre>
-      ) : (
-        <module.MultiFileDiff {...files} options={options} />
+    <>
+      <div
+        ref={ref}
+        className="kiseki-diff-box"
+        data-capped={(capped && !showAll) || undefined}
+        data-full-height={full}
+        style={{ height }}
+      >
+        {!module || failed ? (
+          <pre className="kiseki-diff-wait" style={{ height: full }}>
+            {plainDiff(sides)}
+          </pre>
+        ) : (
+          <module.MultiFileDiff {...files} options={options} />
+        )}
+      </div>
+      {capped && expandKey && (
+        <button
+          type="button"
+          className="kiseki-diff-more"
+          aria-expanded={showAll}
+          onClick={(event) => {
+            event.stopPropagation();
+            context.toggle(expandKey);
+          }}
+        >
+          {showAll ? "show less" : `show all ${lineCount} lines`}
+        </button>
       )}
-    </div>
+    </>
   );
 }
 
