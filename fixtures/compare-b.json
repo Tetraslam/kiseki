@@ -1,0 +1,206 @@
+{
+  "schema_version": "0.9.0",
+  "trace_id": "00000000-0000-4000-8000-00000000c00b",
+  "session_id": "compare-b",
+  "task": {
+    "description": "find people who have built fpga projects"
+  },
+  "agent": {
+    "name": "parc-search",
+    "model": "anthropic/claude-haiku-5-5"
+  },
+  "steps": [
+    {
+      "step_index": 0,
+      "role": "user",
+      "content": "find people who have built fpga projects",
+      "timestamp": "2026-11-03T12:00:00.000Z"
+    },
+    {
+      "step_index": 1,
+      "role": "agent",
+      "tool_calls": [
+        {
+          "tool_call_id": "b-1-0",
+          "tool_name": "searchPeople",
+          "input": {
+            "query": "fpga"
+          }
+        }
+      ],
+      "observations": [
+        {
+          "source_call_id": "b-1-0",
+          "output_summary": "searchPeople returned 2 results"
+        }
+      ],
+      "token_usage": {
+        "input_tokens": 4000,
+        "output_tokens": 150
+      },
+      "timestamp": "2026-11-03T12:00:03.000Z"
+    },
+    {
+      "step_index": 2,
+      "role": "agent",
+      "tool_calls": [
+        {
+          "tool_call_id": "b-2-0",
+          "tool_name": "searchEvidence",
+          "input": {
+            "query": "fpga"
+          }
+        }
+      ],
+      "observations": [
+        {
+          "source_call_id": "b-2-0",
+          "output_summary": "searchEvidence returned 2 results"
+        }
+      ],
+      "token_usage": {
+        "input_tokens": 8000,
+        "output_tokens": 150
+      },
+      "timestamp": "2026-11-03T12:00:06.000Z"
+    },
+    {
+      "step_index": 3,
+      "role": "agent",
+      "tool_calls": [
+        {
+          "tool_call_id": "b-3-0",
+          "tool_name": "searchPeople",
+          "input": {
+            "query": "fpga"
+          }
+        }
+      ],
+      "observations": [
+        {
+          "source_call_id": "b-3-0",
+          "output_summary": "searchPeople returned 2 results"
+        }
+      ],
+      "token_usage": {
+        "input_tokens": 12000,
+        "output_tokens": 150
+      },
+      "timestamp": "2026-11-03T12:00:09.000Z"
+    },
+    {
+      "step_index": 4,
+      "role": "agent",
+      "tool_calls": [
+        {
+          "tool_call_id": "b-4-0",
+          "tool_name": "searchPeople",
+          "input": {
+            "query": "fpga"
+          }
+        }
+      ],
+      "observations": [
+        {
+          "source_call_id": "b-4-0",
+          "output_summary": "searchPeople returned 2 results"
+        }
+      ],
+      "token_usage": {
+        "input_tokens": 16000,
+        "output_tokens": 150
+      },
+      "timestamp": "2026-11-03T12:00:12.000Z"
+    },
+    {
+      "step_index": 5,
+      "role": "agent",
+      "tool_calls": [
+        {
+          "tool_call_id": "b-5-0",
+          "tool_name": "fetchProfile",
+          "input": {
+            "query": "fpga"
+          }
+        }
+      ],
+      "observations": [
+        {
+          "source_call_id": "b-5-0",
+          "output_summary": "fetchProfile returned 2 results"
+        }
+      ],
+      "token_usage": {
+        "input_tokens": 20000,
+        "output_tokens": 150
+      },
+      "timestamp": "2026-11-03T12:00:15.000Z"
+    },
+    {
+      "step_index": 6,
+      "role": "agent",
+      "tool_calls": [
+        {
+          "tool_call_id": "b-6-0",
+          "tool_name": "searchEvidence",
+          "input": {
+            "query": "fpga"
+          }
+        }
+      ],
+      "observations": [
+        {
+          "source_call_id": "b-6-0",
+          "output_summary": "searchEvidence returned 2 results"
+        }
+      ],
+      "token_usage": {
+        "input_tokens": 24000,
+        "output_tokens": 150
+      },
+      "timestamp": "2026-11-03T12:00:18.000Z"
+    },
+    {
+      "step_index": 7,
+      "role": "agent",
+      "tool_calls": [
+        {
+          "tool_call_id": "b-7-0",
+          "tool_name": "listProjects",
+          "input": {
+            "query": "fpga"
+          }
+        }
+      ],
+      "observations": [
+        {
+          "source_call_id": "b-7-0",
+          "output_summary": "listProjects returned 2 results"
+        }
+      ],
+      "token_usage": {
+        "input_tokens": 28000,
+        "output_tokens": 150
+      },
+      "timestamp": "2026-11-03T12:00:21.000Z"
+    },
+    {
+      "step_index": 8,
+      "role": "agent",
+      "content": "Two people have shipped FPGA work: a raytracer and a soft CPU.",
+      "tool_calls": [],
+      "observations": [],
+      "token_usage": {
+        "input_tokens": 32000,
+        "output_tokens": 150
+      },
+      "timestamp": "2026-11-03T12:00:24.000Z"
+    }
+  ],
+  "outcome": {
+    "success": false,
+    "signal_source": "interaction",
+    "signal_confidence": "inferred",
+    "description": "rephrased"
+  }
+}

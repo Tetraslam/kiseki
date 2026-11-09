@@ -1,0 +1,39 @@
+{
+  "schema_version": "0.9.0",
+  "trace_id": "00000000-0000-4000-8000-0000000005a2",
+  "session_id": "child",
+  "agent": {
+    "name": "synthetic-agent",
+    "model": "anthropic/claude-haiku-5-5"
+  },
+  "steps": [
+    {
+      "step_index": 0,
+      "role": "agent",
+      "agent_role": "triage",
+      "tool_calls": [
+        {
+          "tool_call_id": "x1",
+          "tool_name": "listIssues",
+          "input": {
+            "state": "open"
+          }
+        }
+      ],
+      "observations": [
+        {
+          "source_call_id": "x1",
+          "output_summary": "12 issues"
+        }
+      ],
+      "timestamp": "2026-11-04T08:00:02.000Z"
+    },
+    {
+      "step_index": 1,
+      "role": "agent",
+      "agent_role": "triage",
+      "content": "3 bugs, 7 features, 2 questions.",
+      "timestamp": "2026-11-04T08:00:30.000Z"
+    }
+  ]
+}

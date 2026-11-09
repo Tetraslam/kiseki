@@ -1,0 +1,50 @@
+{
+  "schema_version": "0.9.0",
+  "trace_id": "00000000-0000-4000-8000-0000000005a1",
+  "session_id": "parent",
+  "task": {
+    "description": "summarize the open issues"
+  },
+  "agent": {
+    "name": "synthetic-agent",
+    "model": "anthropic/claude-sonnet-5-5"
+  },
+  "timestamp_start": "2026-11-04T08:00:00.000Z",
+  "timestamp_end": "2026-11-04T08:00:40.000Z",
+  "steps": [
+    {
+      "step_index": 0,
+      "role": "user",
+      "content": "summarize the open issues",
+      "timestamp": "2026-11-04T08:00:00.000Z"
+    },
+    {
+      "step_index": 1,
+      "role": "agent",
+      "content": "Delegating the triage to a subagent.",
+      "subagent_trajectory_ref": "child",
+      "tool_calls": [
+        {
+          "tool_call_id": "t1",
+          "tool_name": "Task",
+          "input": {
+            "description": "triage issues"
+          }
+        }
+      ],
+      "observations": [
+        {
+          "source_call_id": "t1",
+          "output_summary": "12 issues triaged"
+        }
+      ],
+      "timestamp": "2026-11-04T08:00:01.000Z"
+    },
+    {
+      "step_index": 2,
+      "role": "agent",
+      "content": "There are **12** open issues; 3 are bugs.",
+      "timestamp": "2026-11-04T08:00:38.000Z"
+    }
+  ]
+}

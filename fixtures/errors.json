@@ -1,0 +1,99 @@
+{
+  "schema_version": "0.9.0",
+  "trace_id": "00000000-0000-4000-8000-0000000e1104",
+  "session_id": "errors",
+  "timestamp_start": "2026-11-02T10:00:00.000Z",
+  "timestamp_end": "2026-11-02T10:01:00.000Z",
+  "task": {
+    "description": "deploy the preview and run the smoke test"
+  },
+  "agent": {
+    "name": "synthetic-agent",
+    "model": "openai/gpt-6"
+  },
+  "steps": [
+    {
+      "step_index": 0,
+      "role": "user",
+      "content": "deploy the preview and run the smoke test",
+      "timestamp": "2026-11-02T10:00:00.000Z"
+    },
+    {
+      "step_index": 1,
+      "role": "agent",
+      "content": "Deploying first.",
+      "tool_calls": [
+        {
+          "tool_call_id": "c1",
+          "tool_name": "Bash",
+          "input": {
+            "command": "vercel deploy"
+          },
+          "duration_ms": 31000
+        }
+      ],
+      "observations": [
+        {
+          "source_call_id": "c1",
+          "output_summary": "build failed",
+          "error": "Error: Command \"pnpm build\" exited with 1\n  > Type error: Property 'live' does not exist on type 'Options'.",
+          "content": "Running build in Washington, D.C.\n...\nType error: Property 'live' does not exist on type 'Options'."
+        }
+      ],
+      "token_usage": {
+        "input_tokens": 8000,
+        "output_tokens": 120
+      },
+      "timestamp": "2026-11-02T10:00:02.000Z"
+    },
+    {
+      "step_index": 2,
+      "role": "agent",
+      "reasoning_content": "The build fails on a type error. I'll fetch the logs and run the smoke test in parallel, but the log fetch might hang.",
+      "tool_calls": [
+        {
+          "tool_call_id": "c2",
+          "tool_name": "fetchLogs",
+          "input": {
+            "deployment": "dpl_123"
+          }
+        },
+        {
+          "tool_call_id": "c3",
+          "tool_name": "smokeTest",
+          "input": {
+            "url": "https://preview.example.com"
+          }
+        }
+      ],
+      "observations": [
+        {
+          "source_call_id": "c3",
+          "output_summary": "0 of 4 checks passed",
+          "error": "ECONNREFUSED"
+        },
+        {
+          "source_call_id": "c9",
+          "output_summary": "stray result for a call this step never made"
+        }
+      ],
+      "token_usage": {
+        "input_tokens": 9000,
+        "output_tokens": 300
+      },
+      "timestamp": "2026-11-02T10:00:35.000Z"
+    },
+    {
+      "step_index": 3,
+      "role": "agent",
+      "content": "The deploy failed on a type error in `Options`, and the log fetch never returned. I stopped here.",
+      "timestamp": "2026-11-02T10:00:58.000Z"
+    }
+  ],
+  "outcome": {
+    "success": false,
+    "terminal_state": "error",
+    "signal_source": "deterministic",
+    "description": "build failed"
+  }
+}

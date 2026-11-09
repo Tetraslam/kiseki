@@ -1,0 +1,209 @@
+{
+  "schema_version": "0.9.0",
+  "trace_id": "bd1939af-88b7-4936-9aee-71e8a4b9ad8e",
+  "session_id": "nh70qfph919a3pqz47r1c0eh9x8g4gv2",
+  "timestamp_start": "2026-10-12T15:27:59.341941Z",
+  "agent": {
+    "name": "parc-search",
+    "version": "0.1.0",
+    "model": "deepseek/deepseek-v4.1-flash"
+  },
+  "task": {
+    "description": "who has built hardware? any fpga people?"
+  },
+  "execution_context": "runtime",
+  "steps": [
+    {
+      "step_index": 0,
+      "role": "agent",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "timestamp": "2026-10-12T15:28:01.591Z",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-6a3603dc0df740e2bc1ed440097c97d6",
+          "tool_name": "searchEvidence",
+          "input": {}
+        },
+        {
+          "tool_call_id": "chatcmpl-tool-744eb39ba8ff483693025f53b3fd75d7",
+          "tool_name": "searchPeople",
+          "input": {}
+        }
+      ],
+      "observations": [
+        {
+          "source_call_id": "chatcmpl-tool-6a3603dc0df740e2bc1ed440097c97d6",
+          "output_summary": "4 matching source pages"
+        },
+        {
+          "source_call_id": "chatcmpl-tool-744eb39ba8ff483693025f53b3fd75d7",
+          "output_summary": "Viewer-scoped result returned; payload omitted."
+        }
+      ],
+      "token_usage": {
+        "input_tokens": 1699,
+        "output_tokens": 101
+      }
+    },
+    {
+      "step_index": 1,
+      "role": "agent",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "timestamp": "2026-10-12T15:28:03.010Z",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-0154a2db486d4e87938a86a02e0444cf",
+          "tool_name": "searchPeople",
+          "input": {}
+        },
+        {
+          "tool_call_id": "chatcmpl-tool-872fb3b7c27149b682e20ca8e3c42e53",
+          "tool_name": "searchEvidence",
+          "input": {}
+        }
+      ],
+      "observations": [
+        {
+          "source_call_id": "chatcmpl-tool-872fb3b7c27149b682e20ca8e3c42e53",
+          "output_summary": "3 matching source pages"
+        },
+        {
+          "source_call_id": "chatcmpl-tool-0154a2db486d4e87938a86a02e0444cf",
+          "output_summary": "Viewer-scoped result returned; payload omitted."
+        }
+      ],
+      "token_usage": {
+        "input_tokens": 16519,
+        "output_tokens": 148
+      }
+    },
+    {
+      "step_index": 2,
+      "role": "agent",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "timestamp": "2026-10-12T15:28:04.906Z",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-0e14669e36e14b1cb6e523f8e657b0dd",
+          "tool_name": "searchEvidence",
+          "input": {}
+        },
+        {
+          "tool_call_id": "chatcmpl-tool-d6684210fcbc49d8a4665a54043b04d5",
+          "tool_name": "searchPeople",
+          "input": {}
+        },
+        {
+          "tool_call_id": "chatcmpl-tool-31e5ba8e298d4666a70f90331bebdb6d",
+          "tool_name": "searchPeople",
+          "input": {}
+        }
+      ],
+      "observations": [
+        {
+          "source_call_id": "chatcmpl-tool-d6684210fcbc49d8a4665a54043b04d5",
+          "output_summary": "Viewer-scoped result returned; payload omitted."
+        },
+        {
+          "source_call_id": "chatcmpl-tool-31e5ba8e298d4666a70f90331bebdb6d",
+          "output_summary": "Viewer-scoped result returned; payload omitted."
+        },
+        {
+          "source_call_id": "chatcmpl-tool-0e14669e36e14b1cb6e523f8e657b0dd",
+          "output_summary": "4 matching source pages"
+        }
+      ],
+      "token_usage": {
+        "input_tokens": 31248,
+        "output_tokens": 273
+      }
+    },
+    {
+      "step_index": 3,
+      "role": "agent",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "timestamp": "2026-10-12T15:28:06.434Z",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-2ba015bf3a86458dbc1c7c995ac3d287",
+          "tool_name": "searchPeople",
+          "input": {}
+        },
+        {
+          "tool_call_id": "chatcmpl-tool-1342a6813f34407a965372f59211e4d7",
+          "tool_name": "listProjects",
+          "input": {}
+        },
+        {
+          "tool_call_id": "chatcmpl-tool-5a0dda4c25c946b2bb60c79675e7669f",
+          "tool_name": "listUpdates",
+          "input": {}
+        }
+      ],
+      "observations": [
+        {
+          "source_call_id": "chatcmpl-tool-2ba015bf3a86458dbc1c7c995ac3d287",
+          "output_summary": "Viewer-scoped result returned; payload omitted."
+        },
+        {
+          "source_call_id": "chatcmpl-tool-5a0dda4c25c946b2bb60c79675e7669f",
+          "output_summary": "1 accessible updates"
+        },
+        {
+          "source_call_id": "chatcmpl-tool-1342a6813f34407a965372f59211e4d7",
+          "output_summary": "0 accessible projects"
+        }
+      ],
+      "token_usage": {
+        "input_tokens": 46261,
+        "output_tokens": 133
+      }
+    },
+    {
+      "step_index": 4,
+      "role": "agent",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "timestamp": "2026-10-12T15:28:09.119Z",
+      "tool_calls": [
+        {
+          "tool_call_id": "chatcmpl-tool-09c28eaef093461d8b06ba8adb4a0519",
+          "tool_name": "searchPeople",
+          "input": {}
+        }
+      ],
+      "observations": [
+        {
+          "source_call_id": "chatcmpl-tool-09c28eaef093461d8b06ba8adb4a0519",
+          "output_summary": "Viewer-scoped result returned; payload omitted."
+        }
+      ],
+      "token_usage": {
+        "input_tokens": 48146,
+        "output_tokens": 267
+      }
+    },
+    {
+      "step_index": 5,
+      "role": "agent",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "timestamp": "2026-10-12T15:28:12.424Z",
+      "tool_calls": [],
+      "observations": [],
+      "token_usage": {
+        "input_tokens": 48526,
+        "output_tokens": 653
+      }
+    }
+  ],
+  "metadata": {
+    "partial": false,
+    "invalid_steps": 0,
+    "expected_steps": 6
+  },
+  "outcome": {
+    "signal_source": "interaction",
+    "signal_confidence": "inferred",
+    "description": "No outcome observed",
+    "terminal_state": null
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "@tetraslam/kiseki-core",
+  "version": "0.1.0",
+  "description": "Parse, validate, and normalize OpenTraces records for kiseki. No React.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tetraslam/kiseki",
+    "directory": "packages/core"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  }
+}
