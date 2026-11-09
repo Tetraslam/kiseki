@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 export function CopyCommand({ command }: { command: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="inline-flex h-9 items-center gap-1 rounded-lg bg-s1 pl-3.5 pr-1 font-mono text-[13px] ring-1 ring-line">
+    <div className="inline-flex h-9 items-center gap-1 rounded-[4px] bg-s1 pl-3.5 pr-1 font-mono text-[13px] ring-1 ring-line">
       <span className="select-all">
         <span className="text-ink-3">$ </span>
         {command}

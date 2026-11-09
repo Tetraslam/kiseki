@@ -77,6 +77,6 @@ const result = await generateText({
   onStepFinish: recorder.onStepFinish,
 });
 const record = recorder.record();
-writeFileSync(out, JSON.stringify(record, null, 2) + "\n");
+writeFileSync(out, `${JSON.stringify(record, null, 2)}\n`);
 console.log(result.text);
 console.log(record.steps.length, "steps");

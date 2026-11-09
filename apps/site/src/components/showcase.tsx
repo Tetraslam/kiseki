@@ -3,67 +3,31 @@
 import { Trace, TraceCompare, type TraceRecord } from "@tetraslam/kiseki";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { type Dropped, readTraceFile } from "@/lib/read-file";
+import { packageRenderers } from "@/lib/renderers";
 import { DropField } from "./drop-field";
 
 export interface Demo {
   id: string;
   label: string;
-  /** Inlined into the page so the first paint is the real trace. */
+  /** What to look at, in one line. */
+  note: string;
   record?: TraceRecord;
-  /** Fetched on hover or focus of the tab, before the click. */
-  src?: string;
-  /** A line under the frame saying what the trace is. */
-  note?: string;
+  compare?: [TraceRecord, TraceRecord];
+  custom?: boolean;
+  live?: boolean;
 }
 
-const subagents: Record<string, string> = { child: "/fixtures/subagent-child.json" };
-
-async function fetchRecord(src: string): Promise<TraceRecord> {
-  const response = await fetch(src);
-  if (!response.ok) throw new Error(`${response.status} for ${src}`);
-  return response.json();
-}
-
-const cache = new Map<string, Promise<TraceRecord>>();
-const warm = (src: string) => {
-  let pending = cache.get(src);
-  if (!pending) {
-    pending = fetchRecord(src);
-    cache.set(src, pending);
-  }
-  return pending;
-};
-
-export function Showcase({
-  demos,
-  compare,
-  caption,
-}: {
-  demos: Demo[];
-  compare: [TraceRecord, TraceRecord];
-  caption: string;
-}) {
+/**
+ * The demos, each a real recorded run. The trace scrolls with the page; its trajectory and
+ * search stay pinned while you read.
+ */
+export function Showcase({ demos }: { demos: Demo[] }) {
   const [tab, setTab] = useState(demos[0]?.id ?? "");
-  const [records, setRecords] = useState<Record<string, TraceRecord>>(() =>
-    Object.fromEntries(demos.flatMap((d) => (d.record ? [[d.id, d.record]] : []))),
-  );
   const [dropped, setDropped] = useState<Dropped | null>(null);
-
-  const open = useCallback(
-    (id: string) => {
-      setTab(id);
-      const demo = demos.find((d) => d.id === id);
-      if (demo?.src && !records[id]) {
-        warm(demo.src).then(
-          (record) => setRecords((prev) => ({ ...prev, [id]: record })),
-          () => toast.error("couldn't load that trace"),
-        );
-      }
-    },
-    [demos, records],
-  );
+  const top = useRef<HTMLDivElement>(null);
 
   const onFile = useCallback(async (file: File) => {
     const id = toast.loading(`reading ${file.name}`);
@@ -71,10 +35,9 @@ export function Showcase({
       const result = await readTraceFile(file);
       setDropped(result);
       setTab("file");
+      top.current?.scrollIntoView({ block: "start" });
       toast.success(
-        `${result.format}: ${result.records[0]?.steps?.length ?? 0} steps${
-          result.issues.length ? `, ${result.issues.length} issues` : ""
-        }`,
+        `${result.format}: ${result.records[0]?.steps?.length ?? 0} steps${result.issues.length ? `, ${result.issues.length} issues` : ""}`,
         { id },
       );
     } catch (error) {
@@ -82,81 +45,66 @@ export function Showcase({
     }
   }, []);
 
-  const current = tab === "file" ? dropped?.records[0] : records[tab];
-
+  const demo = demos.find((d) => d.id === tab);
+  const note = tab === "file" ? `${dropped?.format} file, read in your browser.` : demo?.note;
   return (
     <DropField onFile={onFile}>
-      <div className="flex flex-wrap items-center gap-3 pb-3">
-        <Tabs value={tab} onValueChange={(value) => open(String(value))}>
-          <TabsList>
-            {demos.map((demo) => (
-              <TabsTrigger
-                key={demo.id}
-                value={demo.id}
-                onPointerEnter={() => demo.src && void warm(demo.src)}
-                onFocus={() => demo.src && void warm(demo.src)}
-              >
-                {demo.label}
+      <div ref={top} className="scroll-mt-4">
+        <Tabs value={tab} onValueChange={(value) => setTab(String(value))}>
+          <TabsList className="flex-wrap">
+            {demos.map((d) => (
+              <TabsTrigger key={d.id} value={d.id}>
+                {d.label}
               </TabsTrigger>
             ))}
-            <TabsTrigger value="compare">compare</TabsTrigger>
             {dropped && <TabsTrigger value="file">{dropped.name}</TabsTrigger>}
           </TabsList>
         </Tabs>
+        <p className="mt-2.5 mb-3 max-w-[72ch] text-[13.5px] text-ink-2">{note}</p>
       </div>
-      <div className="crop">
-        <div className="h-[min(680px,78dvh)] overflow-hidden rounded-lg shadow-[0_1px_0_var(--line),0_12px_40px_-12px_rgb(0_0_0/0.18)] ring-1 ring-line">
-          {tab === "compare" ? (
-            <TraceCompare a={compare[0]} b={compare[1]} />
-          ) : tab === "live" ? (
-            <LiveReplay source={records.live} />
-          ) : current ? (
-            <Trace
-              key={tab === "file" ? `file:${dropped?.name}` : tab}
-              record={current}
-              loadTrace={(ref) => {
-                const src = subagents[ref];
-                return src ? warm(src) : Promise.reject(new Error(`no trace for ${ref}`));
-              }}
-            />
-          ) : (
-            <div className="kiseki h-full" />
-          )}
-        </div>
+      <div className="overflow-clip rounded-[6px] ring-1 ring-line">
+        {tab === "file" && dropped?.records[0] ? (
+          <Trace key={`file:${dropped.name}`} record={dropped.records[0]} scroll="page" />
+        ) : demo?.compare ? (
+          <TraceCompare a={demo.compare[0]} b={demo.compare[1]} scroll="page" />
+        ) : demo?.live && demo.record ? (
+          <LiveReplay source={demo.record} />
+        ) : demo?.record ? (
+          <Trace
+            key={demo.id}
+            record={demo.record}
+            scroll="page"
+            renderers={demo.custom ? packageRenderers : undefined}
+          />
+        ) : null}
       </div>
-      <p className="mt-3 text-xs text-ink-3">
-        {tab === "agent"
-          ? caption
-          : tab === "compare"
-            ? "two runs of one search task, aligned by step signature. tinted rows are steps only one run took."
-            : tab === "file"
-              ? `${dropped?.format} file, read in your browser.`
-              : (demos.find((d) => d.id === tab)?.note ?? "")}
-      </p>
     </DropField>
   );
 }
 
-/** Replays a finished trace step by step, the way a host passes a growing record. */
-function LiveReplay({ source }: { source?: TraceRecord }) {
+/** Replays a recorded run at its own pace, the way a host passes a growing record. */
+function LiveReplay({ source }: { source: TraceRecord }) {
   const [count, setCount] = useState(1);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const total = source?.steps?.length ?? 0;
+  const [run, setRun] = useState(0);
+  const total = source.steps?.length ?? 0;
   useEffect(() => {
-    if (!source || count >= total) return;
+    if (count >= total) return;
+    const step = source.steps?.[count - 1];
     const next = source.steps?.[count];
-    // Pace by the step's own size, so tool-heavy steps feel like work.
-    const delay = 350 + Math.min(900, (next?.tool_calls?.length ?? 0) * 260);
-    timer.current = setTimeout(() => setCount((c) => c + 1), delay);
-    return () => clearTimeout(timer.current);
+    // Real gaps between steps, capped so the replay doesn't stall.
+    const gap =
+      step?.timestamp && next?.timestamp
+        ? Date.parse(next.timestamp) - Date.parse(step.timestamp)
+        : 800;
+    const timer = setTimeout(() => setCount((c) => c + 1), Math.min(1600, Math.max(250, gap)));
+    return () => clearTimeout(timer);
   }, [source, count, total]);
-  if (!source) return <div className="kiseki h-full" />;
-  const steps = source.steps?.slice(0, count) ?? [];
-  // The newest step's calls are still running: drop its observations.
-  const growing = steps.map((step, i) =>
-    i === steps.length - 1 && count < total ? { ...step, observations: [] } : step,
-  );
   const running = count < total;
+  const steps = (source.steps ?? []).slice(0, count);
+  // The newest step's calls are still running: hold back their results.
+  const growing = steps.map((step, i) =>
+    i === steps.length - 1 && running ? { ...step, observations: [] } : step,
+  );
   const record = running
     ? {
         ...source,
@@ -166,5 +114,23 @@ function LiveReplay({ source }: { source?: TraceRecord }) {
         metrics: undefined,
       }
     : source;
-  return <Trace record={record} live={running} />;
+  return (
+    <div>
+      <Trace key={run} record={record} live={running} scroll="page" />
+      {!running && (
+        <div className="flex justify-end border-t border-line px-4 py-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setCount(1);
+              setRun((r) => r + 1);
+            }}
+          >
+            replay
+          </Button>
+        </div>
+      )}
+    </div>
+  );
 }

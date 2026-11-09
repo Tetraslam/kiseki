@@ -10,6 +10,13 @@ import {
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+/** Element Timing entries; not in TypeScript's DOM lib yet. */
+interface ElementTiming extends PerformanceEntry {
+  identifier: string;
+  renderTime: number;
+  loadTime: number;
+}
+
 declare global {
   interface Window {
     __kiseki?: {
@@ -31,13 +38,16 @@ export function PerfHarness() {
   const params = useSearchParams();
   const name = params.get("fixture") ?? "synthetic-10k.jsonl";
   const held = Number(params.get("live") ?? 0);
+  const overview = params.get("overview") !== "0";
   const [record, setRecord] = useState<TraceRecord | null>(null);
   const handle = useRef<TraceHandle>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const text = await (await fetch(`/fixtures/${name}`)).text();
+      const response = await fetch(`/fixtures/${name}`);
+      if (!response.ok) throw new Error(`${response.status} for ${name}`);
+      const text = await response.text();
       performance.mark("kiseki:fetched");
       const parsed = parseTraces(text).records[0];
       if (!parsed || cancelled) return;
@@ -75,15 +85,19 @@ export function PerfHarness() {
         ref={handle}
         record={record}
         live={held > 0}
+        overview={overview}
         onFirstRows={() => {
           performance.mark("kiseki:committed");
-          // The frame after this one is the first that contains the rows.
-          requestAnimationFrame(() =>
-            setTimeout(() => {
-              performance.mark("kiseki:painted");
-              if (window.__kiseki) window.__kiseki.ready = true;
-            }, 0),
-          );
+          // The browser's own record of when the first row's text was painted.
+          new PerformanceObserver((list, observer) => {
+            const entry = (list.getEntries() as ElementTiming[]).find(
+              (e) => e.identifier === "kiseki-first-row",
+            );
+            if (!entry) return;
+            observer.disconnect();
+            performance.mark("kiseki:painted", { startTime: entry.renderTime || entry.loadTime });
+            if (window.__kiseki) window.__kiseki.ready = true;
+          }).observe({ type: "element", buffered: true });
         }}
       />
     </div>

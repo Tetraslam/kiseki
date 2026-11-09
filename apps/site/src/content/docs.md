@@ -29,7 +29,13 @@ export function TraceView({ record }) {
 }
 ```
 
-`<Trace>` fills its parent's height and scrolls inside it. The first rows render on the server, so the first paint is the trace itself, and the virtualizer takes over before the browser paints.
+By default `<Trace>` fills its parent's height and scrolls inside it. Pass `scroll="page"` to let it grow with the document instead: the overview and search stay pinned while the page scrolls, and there is no second scroller. The first rows render on the server, so the first paint is the trace itself, and the virtualizer takes over before the browser paints.
+
+From the top, a trace reads as:
+
+1. **the verdict**: the outcome and the agent's final answer, then duration, cost, and failed calls. The prompt and the other numbers sit in one quiet line.
+2. **the trajectory**: the run's shape over time. The main agent gets one lane, and each subagent running at the same time gets its own. A launching step is hatched while it waits, failures are marked, and the band shows what the transcript has on screen. Click anywhere on it to jump.
+3. **the transcript**: steps with their tool calls, each call leading with its result.
 
 To parse text yourself (a `.json` record, a JSON array, or JSONL with one record per line):
 
@@ -71,6 +77,23 @@ Every state prop works controlled or uncontrolled. Controlled, it can live in th
 const [step, setStep] = useQueryState("step");
 <Trace record={record} selectedStep={step} onSelectStep={setStep} />;
 ```
+
+## Built-in tool views
+
+kiseki picks a view for each call from the tool's name, then the shape of its input:
+
+| tool | what leads | then |
+| --- | --- | --- |
+| edit, multiedit, apply_patch | lines added and removed | the diff, open by default up to 40 changed lines |
+| bash, shell, exec | pass and fail counts (node, vitest, jest, pytest, cargo, go) or the exit status | the command and the output's tail, or the failing tests |
+| read, view | the line range | the path; content on click |
+| grep, search | the match count | the pattern and the first matches, highlighted |
+| write | the line count | the new file with line numbers |
+| glob, ls | the file count | the files on click |
+| task, agent | the subagent finished | its result on click |
+| anything else | the output summary | input as key and value, output pretty-printed |
+
+Paths show relative to the run's working directory. Nothing overflows the row: long values wrap, and long output scrolls inside its own box only once opened.
 
 ## Custom renderers
 
@@ -129,7 +152,7 @@ import { TraceCompare } from "@tetraslam/kiseki";
 <TraceCompare a={runA} b={runB} />;
 ```
 
-Steps are aligned by signature (role plus sorted tool names) through a longest common subsequence (Myers' diff). Steps only one run took sit across from a gap, and the first divergence is labeled.
+Pass `scroll="page"` to render every pair in the page's flow (fine for runs of a few hundred steps). Steps are aligned by signature (role plus sorted tool names) through a longest common subsequence (Myers' diff). Steps only one run took sit across from a gap, and the first divergence is labeled.
 
 ## Keyboard
 
@@ -191,9 +214,9 @@ Dark mode follows a `.dark` class or `data-theme="dark"` on an ancestor, or the 
 
 Measured by `scripts/perf.mjs` in headless Chromium against the built site, on a generated 10,000-step trace (28 MB of JSONL):
 
-- first rows paint a median of FIRST_ROWS ms after the record is parsed (budget: 100 ms)
-- cumulative layout shift is 0 while scrolling, expanding, and streaming, and rows above an expanded call move 0 px
-- @pierre/diffs loads only when a patch is opened or on screen
+- first rows paint a median of FIRST_ROWS ms after the record is parsed (budget: 100 ms), read from Element Timing on the first row. The overview lays out on the next frame, its height already reserved.
+- cumulative layout shift is 0 while loading, scrolling, expanding, and streaming. Rows above an opened call move 0 px, and on kiseki.sh the clicked element stays put to the pixel.
+- @pierre/diffs loads only once a diff is on screen, and each diff's height is reserved exactly before it renders
 - files over 5 MB dropped on kiseki.sh parse in a web worker
 
 ## What isn't proven
@@ -201,5 +224,5 @@ Measured by `scripts/perf.mjs` in headless Chromium against the built site, on a
 - Claude Code `MultiEdit`, `NotebookEdit`, and the older inline sidechain format haven't been seen in a real session.
 - The Pi adapter was checked against one real session with no tool calls; tools, patches, and branching follow Pi's docs.
 - The Codex adapter was checked on eight rollouts, none with subagents.
-- The AI SDK adapter was checked with real `StepResult`s from a mock model, not a live provider.
+- The overview's lane packing was checked on one real parallel run (three subagents) and generated traces; deeply nested subagents haven't appeared in a real trace.
 - Performance numbers come from one machine in headless Chromium. Other browsers aren't measured.

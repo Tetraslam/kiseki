@@ -19,7 +19,9 @@ export function DropField({
   const depth = useRef(0);
   const input = useRef<HTMLInputElement>(null);
   const onFileRef = useRef(onFile);
-  onFileRef.current = onFile;
+  useEffect(() => {
+    onFileRef.current = onFile;
+  }, [onFile]);
 
   useEffect(() => {
     const hasFiles = (event: DragEvent) => event.dataTransfer?.types.includes("Files");
@@ -59,7 +61,7 @@ export function DropField({
   return (
     <div className="relative">
       {children}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-4 text-sm text-ink-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 text-[13px] text-ink-3">
         <p className="max-w-[62ch]">
           drop an opentraces <code className="font-mono text-[12px]">.jsonl</code>, a claude code
           session, an <code className="font-mono text-[12px]">opencode session export</code>, or a
@@ -76,6 +78,7 @@ export function DropField({
           accept=".json,.jsonl,application/json"
           className="sr-only"
           tabIndex={-1}
+          aria-label="trace file"
           onChange={(event) => {
             const file = event.target.files?.[0];
             if (file) onFile(file);
@@ -86,10 +89,10 @@ export function DropField({
       <div
         aria-hidden
         data-on={receiving || undefined}
-        className="pointer-events-none absolute inset-[-12px] grid place-items-center rounded-xl bg-[color-mix(in_oklab,var(--bg)_82%,transparent)] opacity-0 ring-1 ring-ember/0 backdrop-blur-[2px] transition-[opacity,box-shadow] duration-220 ease-standard data-on:opacity-100 data-on:ring-ember/60"
+        className="pointer-events-none fixed inset-3 z-50 grid place-items-center rounded-[6px] bg-[color-mix(in_oklab,var(--bg)_88%,transparent)] opacity-0 ring-1 ring-accent-ink/0 transition-[opacity,box-shadow] duration-[180ms] ease-track data-on:opacity-100 data-on:ring-accent-ink"
       >
-        <span className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background">
-          drop to read it here
+        <span className="rounded-[4px] bg-foreground px-3 py-1.5 text-[13px] font-medium text-background">
+          drop to read it here, in your browser
         </span>
       </div>
     </div>
