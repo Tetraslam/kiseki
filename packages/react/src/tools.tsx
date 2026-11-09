@@ -104,6 +104,15 @@ function failures(text: string): string[] {
     .slice(0, 14);
 }
 
+function failedNames(output: string): string {
+  const names = failures(output).map((line) =>
+    line.replace(/^\s*([✖✗×]|FAIL|not ok \d*|FAILED|--- FAIL:?)\s*/, ""),
+  );
+  if (!names.length) return "";
+  const shown = names.slice(0, 2).join(", ");
+  return names.length > 2 ? `${shown}, +${names.length - 2} more` : shown;
+}
+
 export function exitCode(text: string | undefined, error?: string): number | undefined {
   const source = `${error ?? ""}\n${text ?? ""}`;
   const match = /exit(?:ed)?(?: with)?(?: code|status)?[:\s]+(-?\d+)/i.exec(source);
@@ -138,25 +147,38 @@ interface FrameProps {
   defaultOpen?: boolean;
 }
 
-/** One tool call: a head line (result, then target, then the tool's name) and its body. */
+/**
+ * One tool call as a compact line: a toggle, the tool's name as a small tag, what it acted on,
+ * and how long it took. The result sits quieter beneath it; the full output opens on demand.
+ */
 function Frame({ props, result, target, failed, children, defaultOpen = false }: FrameProps) {
   const open = defaultOpen !== props.expanded;
+  const hasBody = children != null;
   return (
     <div className="kiseki-call" data-status={props.status} data-failed={failed || undefined}>
       <button
         type="button"
         className="kiseki-call-line"
-        aria-expanded={open}
+        aria-expanded={hasBody ? open : undefined}
         onClick={props.onToggle}
       >
-        <Glyph status={props.status} failed={failed} />
-        <span className="kiseki-result">{result}</span>
-        {target != null && target !== "" && <span className="kiseki-target">{target}</span>}
-        <span className="kiseki-tool-name">{props.call.tool_name}</span>
+        <span className="kiseki-call-toggle" aria-hidden="true">
+          <svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">
+            <path d="M3.5 2 6.5 5l-3 3" fill="none" stroke="currentColor" strokeWidth="1.3" />
+          </svg>
+        </span>
+        <span className="kiseki-tag">{props.call.tool_name}</span>
+        <span className="kiseki-target">{target}</span>
         <span className="kiseki-call-time kiseki-num">
           {formatDuration(props.call.duration_ms)}
         </span>
       </button>
+      {result != null && result !== "" && (
+        <div className="kiseki-result">
+          <Glyph status={props.status} failed={failed} />
+          <span className="kiseki-result-text">{result}</span>
+        </div>
+      )}
       {children?.(open)}
     </div>
   );
@@ -173,12 +195,12 @@ function Glyph({ status, failed }: { status: string; failed?: boolean }) {
           : "M2.8 6.2l2.1 2.1 4.3-4.6";
   return (
     <span className="kiseki-glyph" role="img" aria-label={failed ? "failed" : status}>
-      <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+      <svg width="10" height="10" viewBox="0 0 12 12" aria-hidden="true">
         <path
           d={path}
           fill={status === "pending" ? "currentColor" : "none"}
           stroke="currentColor"
-          strokeWidth="1.5"
+          strokeWidth="1.6"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -259,7 +281,10 @@ export function ShellCall(props: ToolRendererProps) {
       <Pending props={props} label="running" />
     ) : tests ? (
       tests.failed ? (
-        `${tests.failed} failed · ${tests.passed} passed`
+        <>
+          {`${tests.failed} failed · ${tests.passed} passed`}
+          <span className="kiseki-dim"> {failedNames(output)}</span>
+        </>
       ) : (
         `${tests.passed} passed`
       )
@@ -274,23 +299,14 @@ export function ShellCall(props: ToolRendererProps) {
     <Frame
       props={props}
       result={result}
-      target={<span className="kiseki-command">$ {command}</span>}
+      target={<span className="kiseki-command">{command}</span>}
       failed={failed}
-      defaultOpen={!!output.trim()}
     >
       {(open) =>
         open && (output.trim() || props.observation?.error) ? (
           <div className="kiseki-call-body">
             <ErrorBlock props={props} />
-            {output.trim() &&
-              (failed && tests && !props.expanded && failures(output).length ? (
-                <>
-                  <pre className="kiseki-out">{failures(output).join("\n")}</pre>
-                  <span className="kiseki-note">the failing tests; open for the full output</span>
-                </>
-              ) : (
-                <Output text={output} open={props.expanded} tail={6} />
-              ))}
+            {output.trim() && <Output text={output} open tail={400} />}
           </div>
         ) : null
       }
@@ -312,13 +328,13 @@ export function ReadCall(props: ToolRendererProps) {
     ) : props.observation?.error ? (
       "couldn't read"
     ) : entries ? (
-      `listed ${Number(entries[2]) - Number(entries[1]) + 1} entries`
+      `${Number(entries[2]) - Number(entries[1]) + 1} entries`
     ) : range ? (
-      `read lines ${range[1]}–${range[2]}`
+      `lines ${range[1]}–${range[2]}`
     ) : typeof offset === "number" ? (
-      `read from line ${offset}${typeof limit === "number" ? `, ${limit} lines` : ""}`
+      `from line ${offset}${typeof limit === "number" ? `, ${limit} lines` : ""}`
     ) : (
-      "read"
+      "done"
     );
   return (
     <Frame props={props} result={result} target={relative(path)}>
@@ -374,7 +390,6 @@ export function GrepCall(props: ToolRendererProps) {
           {where && <span className="kiseki-dim"> in {relative(where)}</span>}
         </>
       }
-      defaultOpen={matches.length > 0}
     >
       {(open) =>
         open && matches.length ? (
@@ -458,7 +473,7 @@ export function EditCall(props: ToolRendererProps) {
       "edit failed"
     ) : (
       <>
-        edited <span className="kiseki-add">+{counts.added}</span>{" "}
+        <span className="kiseki-add">+{counts.added}</span>{" "}
         <span className="kiseki-del">−{counts.removed}</span>
       </>
     );
@@ -507,12 +522,11 @@ export function WriteCall(props: ToolRendererProps) {
         ) : failed ? (
           "write failed"
         ) : (
-          `wrote ${count} lines`
+          `${count} lines`
         )
       }
       target={relative(path)}
       failed={failed}
-      defaultOpen={count > 0}
     >
       {(open) =>
         open ? (

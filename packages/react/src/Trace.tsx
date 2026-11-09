@@ -69,8 +69,14 @@ export interface TraceProps extends TraceLoaders {
   /** `false` hides the header; a node replaces it. */
   header?: boolean | ReactNode;
   toolbar?: boolean;
-  /** The trajectory overview above the transcript. */
-  overview?: boolean;
+  /**
+   * The trajectory overview: a map of the run over time. `true` (default) offers it behind a
+   * toggle in the bar, closed; `"open"` starts it open; `false` removes it. When open it floats
+   * over the trace instead of pushing it down.
+   */
+  overview?: boolean | "open";
+  /** How agent text and reasoning read: at full weight (default) or quieter. */
+  prose?: "full" | "quiet";
   /**
    * `container` (default) scrolls inside the trace, which then needs a height. `page` lets the
    * trace grow with the document and scroll with it; the overview and search stay pinned.
@@ -109,7 +115,8 @@ export function Trace(props: TraceProps) {
     permalink,
     header = true,
     toolbar = true,
-    overview: showOverview = true,
+    overview: overviewProp = true,
+    prose = "full",
     scroll = "container",
     stickyTop = 0,
     keyboard = "scoped",
@@ -319,8 +326,10 @@ export function Trace(props: TraceProps) {
       root: view,
       workdir,
       outliers,
+      prose,
     }),
     [
+      prose,
       workdir,
       outliers,
       renderers,
@@ -340,6 +349,8 @@ export function Trace(props: TraceProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [notice, setNotice] = useState("");
   const [scaleChoice, setScale] = useState<"time" | "steps" | null>(null);
+  const [overviewOpen, setOverviewOpen] = useState(overviewProp === "open");
+  const showOverview = overviewProp !== false && overviewOpen;
   const laneCount = useMemo(
     () => (showOverview ? overviewLaneCount(view, { loaded, scale: scaleChoice ?? "auto" }) : 0),
     [showOverview, view, loaded, scaleChoice],
@@ -543,78 +554,102 @@ export function Trace(props: TraceProps) {
         tabIndex={0}
         onKeyDown={keyboard === "scoped" ? onKey : undefined}
       >
-        {header === true ? <TraceHeader view={view} /> : header || null}
         <div
-          className={scroll === "page" ? "kiseki-sticky" : undefined}
+          className={`kiseki-bar${scroll === "page" ? " kiseki-sticky" : ""}`}
           style={
             scroll === "page"
               ? ({ "--kiseki-sticky-top": `${stickyTop}px` } as CSSProperties)
               : undefined
           }
         >
-          {showOverview && view.steps.length > 0 && (
-            <TraceOverview
-              handle={overviewRef}
-              overview={layout}
-              lanes={laneCount}
-              selected={selected}
-              onPick={reveal}
-              describe={describe}
-              scale={layout?.scale ?? scaleChoice ?? (timedLayout ? "time" : "steps")}
-              onScale={setScale}
-              canScaleByTime={timedLayout}
-            />
+          {header === true ? (
+            <TraceHeader view={view}>
+              {toolbar && (
+                <span className="kiseki-tools">
+                  <label className="kiseki-search">
+                    <SearchIcon />
+                    <input
+                      ref={searchInput}
+                      value={query}
+                      placeholder="search"
+                      aria-label="search steps"
+                      spellCheck={false}
+                      onChange={(event) => setQuery(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          stepMatch(event.shiftKey ? -1 : 1);
+                        } else if (event.key === "Escape") {
+                          event.preventDefault();
+                          if (query) setQuery("");
+                          else rootRef.current?.focus();
+                        }
+                      }}
+                    />
+                    {query ? (
+                      <span className="kiseki-status kiseki-num" aria-live="polite">
+                        {deferredQuery
+                          ? matches.length
+                            ? `${Math.max(0, selected ? matches.indexOf(selected) : matchCursor) + 1}/${matches.length}`
+                            : "0"
+                          : ""}
+                      </span>
+                    ) : (
+                      <kbd className="kiseki-kbd">/</kbd>
+                    )}
+                  </label>
+                  {query && (
+                    <>
+                      <button
+                        type="button"
+                        className="kiseki-icon-button"
+                        aria-label="previous match"
+                        disabled={!matches.length}
+                        onClick={() => stepMatch(-1)}
+                      >
+                        <ArrowIcon up />
+                      </button>
+                      <button
+                        type="button"
+                        className="kiseki-icon-button"
+                        aria-label="next match"
+                        disabled={!matches.length}
+                        onClick={() => stepMatch(1)}
+                      >
+                        <ArrowIcon />
+                      </button>
+                    </>
+                  )}
+                  {overviewProp !== false && view.steps.length > 0 && (
+                    <button
+                      type="button"
+                      className="kiseki-chip"
+                      aria-pressed={overviewOpen}
+                      onClick={() => setOverviewOpen((open) => !open)}
+                    >
+                      map
+                    </button>
+                  )}
+                  {notice && <span className="kiseki-status kiseki-num">{notice}</span>}
+                </span>
+              )}
+            </TraceHeader>
+          ) : (
+            header || null
           )}
-          {toolbar && (
-            <div className="kiseki-toolbar">
-              <label className="kiseki-search">
-                <SearchIcon />
-                <input
-                  ref={searchInput}
-                  value={query}
-                  placeholder="search steps"
-                  aria-label="search steps"
-                  spellCheck={false}
-                  onChange={(event) => setQuery(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      stepMatch(event.shiftKey ? -1 : 1);
-                    } else if (event.key === "Escape") {
-                      event.preventDefault();
-                      if (query) setQuery("");
-                      else rootRef.current?.focus();
-                    }
-                  }}
-                />
-                {!query && <kbd className="kiseki-kbd">/</kbd>}
-              </label>
-              <span className="kiseki-status kiseki-num" aria-live="polite">
-                {notice ||
-                  (deferredQuery
-                    ? matches.length
-                      ? `${Math.max(0, selected ? matches.indexOf(selected) : matchCursor) + 1} / ${matches.length}`
-                      : "no matches"
-                    : "")}
-              </span>
-              <button
-                type="button"
-                className="kiseki-icon-button"
-                aria-label="previous match"
-                disabled={!matches.length}
-                onClick={() => stepMatch(-1)}
-              >
-                <ArrowIcon up />
-              </button>
-              <button
-                type="button"
-                className="kiseki-icon-button"
-                aria-label="next match"
-                disabled={!matches.length}
-                onClick={() => stepMatch(1)}
-              >
-                <ArrowIcon />
-              </button>
+          {showOverview && view.steps.length > 0 && (
+            <div className="kiseki-overview-float">
+              <TraceOverview
+                handle={overviewRef}
+                overview={layout}
+                lanes={laneCount}
+                selected={selected}
+                onPick={reveal}
+                describe={describe}
+                scale={layout?.scale ?? scaleChoice ?? (timedLayout ? "time" : "steps")}
+                onScale={setScale}
+                canScaleByTime={timedLayout}
+              />
             </div>
           )}
         </div>

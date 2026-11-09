@@ -21,6 +21,8 @@ export interface TraceContextValue extends TraceLoaders {
   workdir?: string;
   /** Steps whose duration or tokens stand out from the rest of the trace. */
   outliers: Outliers;
+  /** How agent text and reasoning read: at full weight (default) or quieter. */
+  prose?: "full" | "quiet";
 }
 
 export interface Outliers {

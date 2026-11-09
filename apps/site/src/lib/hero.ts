@@ -4,13 +4,13 @@ export const demos = [
     id: "coding",
     file: "opencode-ledger-json-flag.json",
     label: "coding session",
-    note: "claude haiku 4.5 in opencode, fixing seven failing tests and adding a --json flag. edits open as diffs, test runs lead with pass and fail counts.",
+    note: "claude haiku 4.5 in opencode, fixing seven failing tests and adding a --json flag. every turn in order: what it thought, what it ran, and the diffs it made.",
   },
   {
     id: "parallel",
     file: "opencode-ledger-review.json",
     label: "parallel subagents",
-    note: "claude sonnet 5.5 sends three explore subagents at once. the trajectory shows them as three lanes, and the parent's hatched bar is the time it spent waiting.",
+    note: "claude sonnet 5.5 sends three explore subagents at once. open the branch to read all three; press map for the lanes over time.",
   },
   {
     id: "custom",

@@ -8,7 +8,7 @@
 
 </div>
 
-kiseki (軌跡, "trajectory") renders [opentraces](https://www.opentraces.ai/schema/latest) records. it draws the run's trajectory (where the time went, which subagents ran in parallel, what failed), then the transcript, with built-in views for edits, shell runs, reads, and searches, live or after the fact. it's one embeddable component in the spirit of [@pierre/diffs](https://diffs.com), not a platform. your app supplies the job-specific parts through custom renderers per tool.
+kiseki (軌跡, "trajectory") renders [opentraces](https://www.opentraces.ai/schema/latest) records. it reads as the run itself, turn by turn: what the agent thought and said, at full weight, then its tool calls as compact lines with results beneath, with built-in views for edits (diffs), shell runs (pass and fail counts), reads, and searches. a map of the run over time, with a lane per parallel subagent, is a toggle away. live or after the fact. it's one embeddable component in the spirit of [@pierre/diffs](https://diffs.com), not a platform. your app supplies the job-specific parts through custom renderers per tool.
 
 ```sh
 pnpm add @tetraslam/kiseki
@@ -38,7 +38,7 @@ drop any trace on [kiseki.sh](https://kiseki.sh) to read it. it renders in your 
 
 ## what's proven
 
-- **performance**, by `pnpm perf` against [the budgets](DESIGN.md#performance-budgets) on a generated 10,000-step, 28 MB trace in headless chromium ([results](docs/perf-results.json)): first rows paint a median of 94 ms after the record is parsed (element timing, budget 100 ms), layout shift is 0 while loading, scrolling, expanding, and streaming, a clicked element stays put to the pixel, diffs reserve their exact height before @pierre/diffs loads, and the live view stays pinned to the tail.
+- **performance**, by `pnpm perf` against [the budgets](DESIGN.md#performance-budgets) on a generated 10,000-step, 28 MB trace in headless chromium ([results](docs/perf-results.json)): first rows paint a median of 88 ms after the record is parsed (element timing, budget 100 ms), layout shift is 0 while loading, scrolling, expanding, and streaming, a clicked element stays put to the pixel, diffs reserve their exact height before @pierre/diffs loads, and the live view stays pinned to the tail.
 - **core**: 28 unit tests on pairing, the tree, alignment (checked against a brute-force lcs), the overview's lanes and waits, search, and generation resolution, over the [fixtures](fixtures).
 - **adapters**, against real sessions on one machine: 99 claude code sessions, 622 opencode 2.x sessions plus 600 from 1.x, 8 codex rollouts, and ai sdk 7 `StepResult`s from a mock model and from a live run through the ai gateway ([the package scout](fixtures/README.md)). every record validates. see [the adapters readme](packages/adapters/README.md#evidence).
 - **rendering**, against real recorded runs ([fixtures](fixtures/README.md)): a coding session, three parallel subagents, an ai sdk agent with custom renderers, and two models on the same task, in light and dark.

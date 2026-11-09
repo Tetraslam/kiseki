@@ -48,17 +48,15 @@ export interface TimelineProps {
 /** A rough height before a row is measured. Close guesses keep the scrollbar from jumping. */
 function estimate(row: Row): number {
   const { step } = row.view;
-  let height = 12;
-  const text = step.content ?? "";
-  if (text) {
-    const lines = text.split("\n").length + Math.floor(text.length / 90);
-    height += Math.min(lines, 40) * 20 + 4;
-  }
-  if (step.reasoning_content) height += 22;
-  height += row.view.calls.length * 26;
-  if (row.branch) height += 30;
-  if (step.role === "user") height += 12;
-  return Math.max(height, 30);
+  let height = 40;
+  const lines = (text: string | undefined, cap: number) =>
+    text ? Math.min(cap, text.split("\n").length + Math.floor(text.length / 96)) : 0;
+  height += lines(step.content, 40) * 23;
+  height += Math.min(lines(step.reasoning_content, 6), 6) * 23;
+  if (step.role === "user") height += 22;
+  height += row.view.calls.length * 46;
+  if (row.branch) height += 32;
+  return height;
 }
 
 /** Enough rows to fill a tall viewport before anything is measured. */
@@ -120,7 +118,7 @@ function ContainerTimeline(props: TimelineProps) {
           tabIndex={stick.isAtBottom ? -1 : 0}
           onClick={() => stick.scrollToBottom()}
         >
-          follow live
+          scroll to latest
         </button>
       )}
     </div>
@@ -197,7 +195,7 @@ function PageTimeline(props: TimelineProps) {
             window.scrollBy({ top: bottom - window.innerHeight + 24 });
           }}
         >
-          follow live
+          scroll to latest
         </button>
       )}
     </div>

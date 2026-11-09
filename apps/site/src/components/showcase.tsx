@@ -60,9 +60,9 @@ export function Showcase({ demos }: { demos: Demo[] }) {
             {dropped && <TabsTrigger value="file">{dropped.name}</TabsTrigger>}
           </TabsList>
         </Tabs>
-        <p className="mt-2.5 mb-3 max-w-[72ch] text-[13.5px] text-ink-2">{note}</p>
+        <p className="mt-2 mb-3 max-w-[80ch] text-[13px] text-ink-3">{note}</p>
       </div>
-      <div className="overflow-clip rounded-[6px] ring-1 ring-line">
+      <div className="overflow-clip rounded-[10px] ring-1 ring-line">
         {tab === "file" && dropped?.records[0] ? (
           <Trace key={`file:${dropped.name}`} record={dropped.records[0]} scroll="page" />
         ) : demo?.compare ? (

@@ -186,16 +186,22 @@ console.error("4. Opening", JSON.stringify(results));
   await second.page.waitForFunction(() => !!customElements.get("diffs-container"), null, {
     timeout: 10_000,
   });
-  // The placeholder and the real diff have the same height.
+  // The placeholder and the real diff have the same height, once the diff on screen has rendered.
+  await second.page.waitForTimeout(1500);
   const sizes = await second.page.evaluate(() =>
-    [...document.querySelectorAll(".kiseki-diff")].map((el) => {
-      const box = el.firstElementChild;
-      return {
-        reserved: Number.parseFloat(box?.style.height ?? "0"),
-        natural: Math.round(box?.scrollHeight ?? 0),
-        actual: Math.round(box?.firstElementChild?.getBoundingClientRect().height ?? 0),
-      };
-    }),
+    [...document.querySelectorAll(".kiseki-diff")]
+      .filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.bottom > 0 && r.top < innerHeight;
+      })
+      .map((el) => {
+        const box = el.firstElementChild;
+        return {
+          reserved: Number.parseFloat(box?.style.height ?? "0"),
+          natural: Math.round(box?.scrollHeight ?? 0),
+          actual: Math.round(box?.firstElementChild?.getBoundingClientRect().height ?? 0),
+        };
+      }),
   );
   results.diffsLazy = { traceWithoutEdits: withoutEdits, afterDiffOnScreen: true };
   results.diffHeightErrorPx = Math.max(0, ...sizes.map((s) => Math.abs(s.actual - s.reserved)));

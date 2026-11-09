@@ -97,6 +97,10 @@ export function Message({ text, streaming }: { text: string; view: ViewStep; str
   );
 }
 
+/**
+ * What the agent thought, as a readable paragraph with a left rule. Long reasoning shows its
+ * opening and opens in place; short reasoning is shown whole.
+ */
 export function Reasoning({
   text,
   expanded,
@@ -107,16 +111,17 @@ export function Reasoning({
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const long = text.length > 900 || text.split("\n").length > 10;
   return (
-    <div>
-      <button type="button" className="kiseki-toggle" aria-expanded={expanded} onClick={onToggle}>
-        <Chevron />
-        <span>thought</span>
-        <span className="kiseki-num">{wordCount(text)} words</span>
-      </button>
-      <Disclosure open={expanded}>
-        <div className="kiseki-reasoning-text">{text}</div>
-      </Disclosure>
+    <div className="kiseki-reasoning">
+      <div className="kiseki-reasoning-text" data-clamped={(long && !expanded) || undefined}>
+        {text.trim()}
+      </div>
+      {long && (
+        <button type="button" className="kiseki-more" aria-expanded={expanded} onClick={onToggle}>
+          {expanded ? "show less" : `show all ${wordCount(text)} words`}
+        </button>
+      )}
     </div>
   );
 }

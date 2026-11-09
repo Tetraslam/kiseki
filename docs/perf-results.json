@@ -1,18 +1,18 @@
 {
   "firstRowsSamplesMs": [
-    97,
-    93,
+    88,
+    92,
+    88,
     87,
-    104,
-    94
+    86
   ],
-  "firstRowsMedianMs": 94,
+  "firstRowsMedianMs": 88,
   "steps": 10000,
-  "parseMs": 87.20000000111759,
-  "firstRowsMs": 98.90000000037253,
-  "firstRowsCommitMs": 70.29999999888241,
+  "parseMs": 102,
+  "firstRowsMs": 76.09999999962747,
+  "firstRowsCommitMs": 39.5,
   "longTasksAfterParse": [
-    84
+    64
   ],
   "domRows": 10,
   "diffsLoadedAtRest": true,
@@ -30,11 +30,8 @@
   "diffHeightErrorPx": 0,
   "streamReaderMovePx": 0,
   "streamCls": 0,
-  "streamLongTasks": [
-    55,
-    51
-  ],
-  "followGapPx": 5,
+  "streamLongTasks": [],
+  "followGapPx": 3,
   "siteAnchorDriftPx": 0,
   "siteNestedScroller": false,
   "siteLoadCls": 0,
@@ -45,5 +42,5 @@
     "following": true,
     "siteAnchored": true
   },
-  "measuredAt": "2026-11-09T22:51:33.082Z"
+  "measuredAt": "2026-11-09T23:12:28.652Z"
 }

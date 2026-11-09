@@ -32,33 +32,30 @@ export default async function Home() {
     <div className="min-h-dvh">
       <SiteBar />
       <main className="mx-auto w-full max-w-[1160px] px-5 pb-24">
-        <section className="grid gap-6 pb-10 pt-12 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] md:items-end md:pt-16">
-          <div>
-            <h1 className="max-w-[18ch] text-[clamp(32px,4.6vw,50px)] font-semibold leading-[1.05] tracking-[-0.03em]">
-              see what your agent actually did.
+        <section className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 pb-6 pt-8">
+          <div className="max-w-[62ch]">
+            <h1 className="text-[22px] font-semibold tracking-[-0.02em]">
+              read what your agent did, turn by turn.
             </h1>
-            <p className="mt-4 max-w-[56ch] text-[15.5px] leading-relaxed text-ink-2">
-              kiseki is a react component for reading agent runs. it draws the run&apos;s
-              trajectory, then the transcript: where the time went, what failed, and what changed,
-              with a diff for every edit. embed it in your admin page, eval harness, or local tool.
+            <p className="mt-1.5 text-[14.5px] leading-relaxed text-ink-2">
+              kiseki is a react component for agent traces: reasoning, tool calls, diffs, and
+              subagents, live or after the fact. below is a real run, rendered by it.
             </p>
           </div>
-          <div className="grid gap-3 md:justify-items-end">
+          <div className="flex items-center gap-2">
             <CopyCommand command="pnpm add @tetraslam/kiseki" />
-            <div className="flex gap-2">
-              <Link
-                href="/docs"
-                className="inline-flex h-8 items-center rounded-[4px] bg-primary px-3 text-[13px] font-medium text-primary-foreground transition-opacity duration-[90ms] hover:opacity-90"
-              >
-                docs
-              </Link>
-              <Link
-                href="/llms.txt"
-                className="inline-flex h-8 items-center rounded-[4px] px-3 text-[13px] text-ink-2 ring-1 ring-line transition-colors duration-[90ms] hover:bg-muted"
-              >
-                for agents
-              </Link>
-            </div>
+            <Link
+              href="/docs"
+              className="inline-flex h-9 items-center rounded-[6px] px-3 text-[13px] text-ink-2 ring-1 ring-line transition-colors duration-[90ms] hover:bg-muted hover:text-foreground"
+            >
+              docs
+            </Link>
+            <Link
+              href="/llms.txt"
+              className="inline-flex h-9 items-center rounded-[6px] px-3 text-[13px] text-ink-2 ring-1 ring-line transition-colors duration-[90ms] hover:bg-muted hover:text-foreground"
+            >
+              for agents
+            </Link>
           </div>
         </section>
 

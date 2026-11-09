@@ -79,3 +79,16 @@ export function prettyJson(value: unknown): string {
     return String(value);
   }
 }
+
+/** Wall-clock time of a step, HH:MM:SS, in the reader's zone. */
+export function clockTime(iso: string | undefined): string {
+  if (!iso) return "";
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return "";
+  return new Date(t).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}

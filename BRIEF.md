@@ -25,11 +25,16 @@ references:
 - **motion**: `--kiseki-track: cubic-bezier(0.25, 0.8, 0.25, 1)` for things that move to a position (selection, the viewport band, scrolling into view), `--kiseki-open: cubic-bezier(0.3, 0.7, 0, 1)` for blocks growing in place. durations 90 / 180 / 280 ms. movement settles like a needle: fast, no overshoot. reduced motion snaps.
 
 ## hierarchy
-- **trace header**: first the outcome (succeeded, failed, error, interrupted, or reward) with the agent's final answer or result. second, duration, cost, and failures, the numbers someone checks. the prompt and the remaining metrics (steps, calls, tokens, model) recede into one quiet line.
-- **overview**: the run's shape over time. lanes for the main agent and its subagents, waiting shown as hatching, errors as red marks, the viewport as an indigo band. click to jump.
-- **transcript rows**: the content and the tool results come first. the role is implied by layout (a user turn is a block and starts a new section; agent text is plain). no repeated "agent" label. step numbers sit in the gutter. tokens and duration show only when a step stands out, or on hover.
-- **tool rows**: the result leads (exit status and output, the diff, the matches), then the target (command, path, pattern), and the tool's name recedes. raw json only as a fallback.
-- **site**: one sentence on what kiseki is for, then the component on a real run, then the demos, each named for what it shows, then install and docs.
+the trace is the product. it reads top to bottom, in order, as a run made of turns, and nothing is hoisted out of it.
+- **bar**: one quiet line: an outcome dot and word, then duration, steps, calls, tokens, cost, and the agent, all small. search and a "map" toggle sit at its right. no answer block, no prompt preview: the prompt is the first turn and the answer is the last.
+- **turns**: each step is a section under a thin rule carrying its number, a label when it isn't the main agent (prompt, explore, system), and its time. tokens and duration join the rule on hover, or always when a step stands out.
+- **prose is first-class**: the agent's text and reasoning read at full weight, 14px at a 76ch measure. reasoning is a paragraph with a left rule, never dimmed or collapsed by default; long reasoning shows its opening six lines. hosts can quiet it with `prose="quiet"`.
+- **tool calls**: compact lines under the prose: a toggle, the tool name as a small tag, what it acted on, its duration. the result sits beneath in a quieter line (passed and failed counts, the line range, +/- counts, the match count) and the full output opens on demand. edits show their diff inline when small, because the diff is the result.
+- **live**: a cursor sits at the end of the latest turn, and "scroll to latest" appears only when the reader has scrolled up.
+- **the map** (the trajectory overview) is secondary: closed by default, opened from the bar, and floating over the trace rather than pushing it down.
+- **site**: one short line on what kiseki is, then the trace as the hero, then the custom-renderer code and install.
+
+the bar for every row, gap, type size, and hover is diffs.com and trees.software: hairline frames, 6px hover radii, 28px interactive lines, 12–13px ui type, 20px code lines, and soft ink rather than pure white.
 
 ## not parc
 the closest existing look is parc (warm paper, ember accent, soft social surfaces). kiseki differs in three concrete ways:
