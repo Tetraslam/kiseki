@@ -80,15 +80,14 @@ export function prettyJson(value: unknown): string {
   }
 }
 
-/** Wall-clock time of a step, HH:MM:SS, in the reader's zone. */
-export function clockTime(iso: string | undefined): string {
-  if (!iso) return "";
+/** Time since the run started, as m:ss or h:mm:ss. Deterministic, so server and client agree. */
+export function elapsed(iso: string | undefined, start: number | undefined): string {
+  if (!iso || start == null) return "";
   const t = Date.parse(iso);
   if (Number.isNaN(t)) return "";
-  return new Date(t).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
+  const total = Math.max(0, Math.round((t - start) / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const sec = String(total % 60).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
 }

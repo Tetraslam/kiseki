@@ -2,7 +2,7 @@ import { branchRuns, type Row } from "@tetraslam/kiseki-core";
 import { memo } from "react";
 import { CallSlot, Chevron, Message, PatchBlock, Reasoning } from "./blocks";
 import { reasoningKey, systemKey, useTrace } from "./context";
-import { clockTime, formatDuration, formatTokens, oneLine, shortModel } from "./format";
+import { elapsed, formatDuration, formatTokens, oneLine, shortModel } from "./format";
 
 export type BranchState = "idle" | "loading" | "loaded" | "error";
 
@@ -65,7 +65,8 @@ export const StepRow = memo(function StepRow({
       : step.error && typeof step.error === "object" && "message" in step.error
         ? String((step.error as { message: unknown }).message)
         : undefined;
-  const time = clockTime(step.timestamp);
+  const start = context.root.record.timestamp_start ?? context.root.record.steps?.[0]?.timestamp;
+  const time = elapsed(step.timestamp, start ? Date.parse(start) : undefined);
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: the timeline handles keys for every row.
     // biome-ignore lint/a11y/noStaticElementInteractions: rows select on click; j/k select from the keyboard.
