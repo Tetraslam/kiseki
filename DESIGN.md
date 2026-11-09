@@ -46,16 +46,22 @@ Heavy payloads: render `output_summary` first. Full `content` comes from the rec
 
 ## Components
 
-- `<Trace record={...} />` is the whole viewer: header plus timeline.
-- `<TraceHeader>`: task, agent and model, outcome, duration, tokens, cost.
+- `<Trace record={...} />` is the whole viewer: header, the trajectory overview, then the transcript. It scrolls inside a sized container (`scroll="container"`, the default) or with the page (`scroll="page"`), where the overview and search stay pinned and nothing nests a second scroller.
+- `<TraceHeader>`: the verdict first: the outcome (succeeded, failed, error, interrupted, reward) and the agent's final answer. Then the numbers people check (duration, cost, failed calls). The prompt, steps, calls, tokens, and model recede into one quiet line.
+- `<TraceOverview>`: the run's shape over time, drawn on canvas so 10,000 steps cost little. Lane 0 is the main agent; subagent runs that overlap in time get their own lanes, so parallel work reads as parallel, and runs that don't overlap share one. One thread in the accent runs through every step in reading order. The step that launched subagents is hatched for as long as it waited. Failed steps carry a red mark, tokens per step sit in a strip below, and the transcript's viewport is a band. Click or arrow keys move the selection; a time or step-order scale is offered when the trace has timestamps. Its height comes from a cheap lane count (`overviewLaneCount`), and its layout runs on the frame after the first rows paint.
 - `<Timeline>`: virtualized from the start. Rows have stable, measured heights; expanding a row grows it in place and nothing else moves. The server and the first client pass render the opening rows in normal flow, so the first paint is the real trace; the virtualizer takes over in a layout effect, before the browser paints, with the same keys and container.
+- Rows carry role through layout, not labels: a user turn opens a section under a rule, agent text is plain, a subagent's prompt reads as the task it was given. Step numbers sit in the gutter; duration and tokens show there on hover, and always when a step stands out (three times the trace's median and over a floor).
 - Step renderers, each replaceable through `renderers`:
   - user and system messages
   - agent messages, rendered with streamdown
   - reasoning, collapsed and dimmed by default
-  - tool calls: name, input, duration, then the observation (summary, then expandable content), with error states
-  - patches, rendered with @pierre/diffs, lazy-loaded
-  - subagents: a foldable branch, folded by default, with a tree overview for deep nesting
+  - tool calls through built-in renderers chosen by tool name, then input shape. Each leads with the result, then the target, and lets the tool's name recede:
+    - edit: the diff is the primary view, open by default up to 40 changed lines, through @pierre/diffs
+    - shell: the command, then pass and fail counts from common test runners or the exit status, then the output's tail (or the failing tests)
+    - read: the path and line range; write: the new file with line numbers; grep: the match count and the first matches, highlighted; glob: the files; task: the subagent's result; fetch: status and output
+    - anything else: the summary, with input as key and value (strings with real newlines, objects as wrapped JSON) and output pretty-printed. Nothing overflows the row.
+  - patches no call claims, as a line that opens to the diff
+  - subagents: a foldable branch, folded by default. One launching step can hold several subagents back to back; they are split into runs (`branchRuns`) where a new prompt starts or time jumps backward.
 - `renderers={{ tools: { searchProfiles: PeopleCards }, fallback }}`: custom renderers per `tool_name`. They receive the paired call, its observation, and the step.
 - `<TraceCompare a={...} b={...} />`: two traces aligned by step signature (role plus tool names), via LCS. It highlights where the two runs diverge.
 
@@ -65,6 +71,7 @@ A host passes a growing `record`, or calls `append(steps)` on a handle. New step
 
 ## Navigation
 
+- Opening or closing anything keeps the clicked element where it was on screen: the timeline holds its viewport position while the rows around it settle, in both scroll modes.
 - Keyboard first: `j`/`k` for the next/previous step, `enter` to expand, `[`/`]` to fold or unfold a subagent, `/` to search, `c` to copy a step permalink.
 - Search covers content, reasoning, tool names, inputs, and summaries. It does not search unloaded payloads.
 - `selectedStep` and `onSelectStep` let the host own permalinks.
@@ -75,11 +82,11 @@ A host passes a growing `record`, or calls `append(steps)` on a handle. New step
 - Zero layout shift while scrolling, expanding, or streaming.
 - No payload, diff, or markdown plugin loads until it's on screen or expanded.
 - Parsing a large `.jsonl` (over 5 MB) runs off the main thread on the site.
-- Measure with paint marks, layout-shift entries, and long tasks in a perf script against fixtures, the way parc's `docs/performance.md` does.
+- Measure with paint marks, layout-shift entries, and long tasks in a perf script against fixtures, the way parc's `docs/performance.md` does. First paint is read from Element Timing on the first row, the browser's own record, not a requestAnimationFrame guess.
 
 ## Style
 
-The defaults follow [tetrastack](https://github.com/tetraslam/tetrastack): stepped surfaces, ink-overlay states, one accent hue, the named easing curves, Inter for UI, Commit Mono for code and numbers. Light and dark. Everything is themed through CSS variables, so hosts restyle without forking. No display face inside the component; Shippori Mincho B1 belongs to the site only. Devtools should look like devtools: dense and calm.
+[BRIEF.md](BRIEF.md) is the contract for the look: an instrument, dense and calm, with cool graphite surfaces, hairlines, 4px radius, and one aizome accent that means position. Inter for UI, Commit Mono for code and numbers, no display face inside the component. Light and dark. Everything is themed through CSS variables, so hosts restyle without forking.
 
 ## Packages
 
@@ -115,10 +122,15 @@ Storage, ingestion, auth, dashboards, evals, alerting, and generic span renderin
 ## Decisions
 
 - **Virtualizer: @tanstack/react-virtual.** It is headless, so it shares one scroll element with use-stick-to-bottom. It measures rows with ResizeObserver, positions them with transforms (which never count as layout shift), and corrects `scrollTop` when a row above the viewport changes size, so what the reader sees holds still. The perf script checks this: 0 px of movement while scrolling, expanding, and streaming.
-- **@pierre/diffs is an optional peer dependency.** kiseki imports it the first time a patch is on screen (warmed on idle) or opened, so hosts that never show patches never load it.
+- **@pierre/diffs is an optional peer dependency.** kiseki imports it the first time a diff is on screen, so hosts that never show edits never load it.
+- **Diffs have a known height before they render.** Every patch becomes two sides of one snippet, rendered unified with every line shown and none wrapped (`expandUnchanged`, `overflow: "scroll"`), so its height is lines × 19px + 16px, with the line count from core's LCS. Until the module arrives, the same lines show as plain text in a box of exactly that height, so the swap moves nothing (the perf script checks 0px of error).
 - **Session storage, as found.** OpenCode 2.x keeps `session` and `session_message` rows in `~/.local/share/opencode/opencode.db`, and `opencode session export <id>` prints the same shape as JSON; 1.x used message and part tables. Claude Code writes one JSONL per session under `~/.claude/projects/<project>/`, with subagents in `subagents/agent-<id>.jsonl`. The adapters take text or parsed objects, never paths, so they run in the browser.
 - **Theming.** Defaults sit in `:where(.kiseki)`, so any host rule on `.kiseki` wins regardless of load order. Dark mode follows a `.dark` class or `data-theme="dark"` on an ancestor.
 - **No backend.** kiseki.sh is static. Dropped files are parsed in the browser (in a worker above 5 MB), so there is nothing to store.
+
+## Demos
+
+The site's demos are real recorded runs (see `fixtures/README.md`): a coding session with edits and tests, three subagents in parallel, an AI SDK agent whose tools render through host components, two models on the same task, and a live replay. No synthetic trace is shown as an example.
 
 ## Open questions
 
