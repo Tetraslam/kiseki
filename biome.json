@@ -12,7 +12,8 @@
       "!**/.next",
       "!fixtures/**/*.json",
       "!fixtures/**/*.jsonl",
-      "!**/*.md"
+      "!**/*.md",
+      "!docs/perf-results.json"
     ]
   },
   "formatter": {
