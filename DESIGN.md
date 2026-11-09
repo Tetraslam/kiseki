@@ -38,6 +38,9 @@ Canonical input: [OpenTraces `TraceRecord`](https://www.opentraces.ai/schema/lat
 - a step tree built from `parent_step` and `call_type`. A `subagent_trajectory_ref` resolves through an optional host callback, `loadTrace(ref)`, and renders as a collapsed branch until expanded.
 - patches attached to the step and tool call that produced them
 - per-step durations and token usage; trace-level totals from `metrics`, computed when absent
+- step keys: a step's `step_index` as a string; steps of a loaded subagent trace are `<ref>/<step_index>`. Block keys append `#reasoning`, `#<tool_call_id>`, or `#patch:<patch_id>`.
+
+Two fields kiseki reads beyond OpenTraces, both written by its adapters: `patch.diff` (a unified diff, since OpenTraces patches carry only snapshot ids) and `step.error` (a failed LLM call, such as an abort). Patch content resolves in order: `patch.diff`, `patch.before`/`after`, the producing call's input (`old_string`/`new_string` or camelCase, `edits[]`, `content`, a unified `patch`/`diff`), then a host callback, `loadPatch(patch)`.
 
 Heavy payloads: render `output_summary` first. Full `content` comes from the record if present, otherwise from an optional host callback, `loadPayload(stepIndex, callId)`, only when a call is expanded.
 
@@ -45,14 +48,14 @@ Heavy payloads: render `output_summary` first. Full `content` comes from the rec
 
 - `<Trace record={...} />` is the whole viewer: header plus timeline.
 - `<TraceHeader>`: task, agent and model, outcome, duration, tokens, cost.
-- `<Timeline>`: virtualized from the start. Rows have stable, measured heights; expanding a row grows it in place and nothing else moves.
+- `<Timeline>`: virtualized from the start. Rows have stable, measured heights; expanding a row grows it in place and nothing else moves. The server and the first client pass render the opening rows in normal flow, so the first paint is the real trace; the virtualizer takes over in a layout effect, before the browser paints, with the same keys and container.
 - Step renderers, each replaceable through `renderers`:
   - user and system messages
   - agent messages, rendered with streamdown
   - reasoning, collapsed and dimmed by default
   - tool calls: name, input, duration, then the observation (summary, then expandable content), with error states
   - patches, rendered with @pierre/diffs, lazy-loaded
-  - subagents: a foldable branch, with a tree overview for deep nesting
+  - subagents: a foldable branch, folded by default, with a tree overview for deep nesting
 - `renderers={{ tools: { searchProfiles: PeopleCards }, fallback }}`: custom renderers per `tool_name`. They receive the paired call, its observation, and the step.
 - `<TraceCompare a={...} b={...} />`: two traces aligned by step signature (role plus tool names), via LCS. It highlights where the two runs diverge.
 
@@ -98,7 +101,7 @@ Storage, ingestion, auth, dashboards, evals, alerting, and generic span renderin
 1. `core` and a static `<Trace>` over fixtures: pairing, the tree, patches, the virtualized timeline, and renderers.
 2. Live mode and keyboard navigation.
 3. `<TraceCompare>`.
-4. Adapters: AI SDK first, then OpenCode and Claude Code.
+4. Adapters: AI SDK first, then OpenCode, Codex, Pi, and Claude Code.
 5. kiseki.sh.
 6. Dogfooding: parc's admin trace view uses kiseki, and local OpenCode sessions render through the adapter.
 
@@ -109,8 +112,15 @@ Storage, ingestion, auth, dashboards, evals, alerting, and generic span renderin
 - The perf script reports against the budgets above.
 - Anything not exercised against a real fixture is marked unproven in the README.
 
+## Decisions
+
+- **Virtualizer: @tanstack/react-virtual.** It is headless, so it shares one scroll element with use-stick-to-bottom. It measures rows with ResizeObserver, positions them with transforms (which never count as layout shift), and corrects `scrollTop` when a row above the viewport changes size, so what the reader sees holds still. The perf script checks this: 0 px of movement while scrolling, expanding, and streaming.
+- **@pierre/diffs is an optional peer dependency.** kiseki imports it the first time a patch is on screen (warmed on idle) or opened, so hosts that never show patches never load it.
+- **Session storage, as found.** OpenCode 2.x keeps `session` and `session_message` rows in `~/.local/share/opencode/opencode.db`, and `opencode session export <id>` prints the same shape as JSON; 1.x used message and part tables. Claude Code writes one JSONL per session under `~/.claude/projects/<project>/`, with subagents in `subagents/agent-<id>.jsonl`. The adapters take text or parsed objects, never paths, so they run in the browser.
+- **Theming.** Defaults sit in `:where(.kiseki)`, so any host rule on `.kiseki` wins regardless of load order. Dark mode follows a `.dark` class or `data-theme="dark"` on an ancestor.
+- **No backend.** kiseki.sh is static. Dropped files are parsed in the browser (in a worker above 5 MB), so there is nothing to store.
+
 ## Open questions
 
-- Which virtualizer handles variable, changing row heights without layout shift.
-- How OpenCode and Claude Code store sessions in practice (OpenCode keeps them in `~/.local/share/opencode/opencode.db`; check the schema).
-- Whether `@pierre/diffs` should be an optional peer dependency, so hosts that never show patches don't ship it.
+- A step can carry one `subagent_trajectory_ref`. When a step launches several subagents without transcripts, the adapters give each its own child step holding the ref. OpenTraces may want a list.
+- OpenCode's `session export` omitted two assistant messages that its database holds in one session checked. The DB rows are the more faithful source.
