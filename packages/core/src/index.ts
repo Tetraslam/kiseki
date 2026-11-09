@@ -14,6 +14,7 @@ export {
   type Overview,
   type OverviewLane,
   type OverviewOptions,
+  overviewLaneCount,
   type Segment,
   type SegmentKind,
   segmentAt,
@@ -30,6 +31,7 @@ export { searchSteps, searchText } from "./search";
 export {
   ancestorsOf,
   type BranchNode,
+  branchRuns,
   branchTree,
   type Row,
   type RowOptions,

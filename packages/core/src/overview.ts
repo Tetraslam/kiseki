@@ -69,13 +69,15 @@ export function layoutOverview(view: TraceView, options: OverviewOptions = {}): 
       const step = trace.byIndex.get(index);
       if (!step) continue;
       ordered.push({ view: step, trace, depth, run });
-      for (const members of branchRuns(trace, step)) {
-        walk(
-          trace,
-          members.map((m) => m.index),
-          depth + 1,
-          ++runs,
-        );
+      if (step.children.length) {
+        for (const members of branchRuns(trace, step)) {
+          walk(
+            trace,
+            members.map((m) => m.index),
+            depth + 1,
+            ++runs,
+          );
+        }
       }
       const ref = step.step.subagent_trajectory_ref;
       const nested = ref ? options.loaded?.get(ref) : undefined;
@@ -84,21 +86,23 @@ export function layoutOverview(view: TraceView, options: OverviewOptions = {}): 
   };
   walk(view, view.roots, 0, 0);
 
-  const timed = ordered.filter(
-    (o) => o.view.step.timestamp && !Number.isNaN(Date.parse(o.view.step.timestamp)),
+  const times = ordered.map((o) =>
+    o.view.step.timestamp ? Date.parse(o.view.step.timestamp) : Number.NaN,
   );
+  const timed = times.reduce((n, t) => (Number.isNaN(t) ? n : n + 1), 0);
   const scale =
     options.scale && options.scale !== "auto"
       ? options.scale
-      : ordered.length && timed.length / ordered.length >= 0.8
+      : ordered.length && timed / ordered.length >= 0.8
         ? "time"
         : "steps";
 
   const placed: Placed[] = [];
   if (scale === "time") {
     let last = 0;
-    for (const o of ordered) {
-      const parsed = o.view.step.timestamp ? Date.parse(o.view.step.timestamp) : Number.NaN;
+    for (let i = 0; i < ordered.length; i++) {
+      const o = ordered[i] as (typeof ordered)[number];
+      const parsed = times[i] as number;
       const start = Number.isNaN(parsed) ? last : parsed;
       // A step with no known duration still gets a sliver, so it can be seen and clicked.
       const end = start + Math.max(o.view.durationMs ?? 0, 1);
@@ -128,29 +132,10 @@ export function layoutOverview(view: TraceView, options: OverviewOptions = {}): 
       });
     }
   }
-  const lanes: OverviewLane[] = [{ label: "main", depth: 0 }];
-  const laneEnds: number[] = [Number.POSITIVE_INFINITY];
-  const laneOf = new Map<number, number>([[0, 0]]);
-  for (const [run, span] of [...spans].sort((a, b) => a[1].start - b[1].start)) {
-    let lane = -1;
-    for (let i = 1; i < lanes.length; i++) {
-      if (lanes[i]?.depth === span.depth && (laneEnds[i] as number) <= span.start) {
-        lane = i;
-        break;
-      }
-    }
-    if (lane < 0) {
-      if (lanes.length < maxLanes) {
-        lane = lanes.length;
-        lanes.push({ label: span.label, depth: span.depth });
-        laneEnds.push(span.end);
-      } else lane = lanes.length - 1;
-    }
-    laneEnds[lane] = Math.max(laneEnds[lane] as number, span.end);
-    const existing = lanes[lane] as OverviewLane;
-    if (existing.label !== span.label) existing.label = "subagents";
-    laneOf.set(run, lane);
-  }
+  const { lanes, laneOf } = packRuns(
+    [...spans].map(([run, span]) => ({ run, ...span })),
+    maxLanes,
+  );
 
   // Branch members per launching step, nested traces included, to measure the wait.
   const placedOf = new Map(placed.map((p) => [p.view, p]));
@@ -188,7 +173,7 @@ export function layoutOverview(view: TraceView, options: OverviewOptions = {}): 
     maxTokens = Math.max(maxTokens, tokens);
     const segment: Segment = {
       key: p.view.key,
-      lane: laneOf.get(p.run) ?? 0,
+      lane: p.run === 0 ? 0 : (laneOf.get(p.run) ?? 0),
       start: p.start,
       end: p.end,
       kind:
@@ -211,8 +196,16 @@ export function layoutOverview(view: TraceView, options: OverviewOptions = {}): 
     return segment;
   });
 
-  const start = placed.length ? Math.min(...placed.map((p) => p.start)) : 0;
-  const end = placed.length ? Math.max(...placed.map((p) => p.end)) : 1;
+  let start = Number.POSITIVE_INFINITY;
+  let end = Number.NEGATIVE_INFINITY;
+  for (const p of placed) {
+    if (p.start < start) start = p.start;
+    if (p.end > end) end = p.end;
+  }
+  if (!placed.length) {
+    start = 0;
+    end = 1;
+  }
   return { scale, start, end: Math.max(end, start + 1), lanes, segments, maxTokens };
 }
 
@@ -230,4 +223,110 @@ export function segmentAt(overview: Overview, at: number, lane?: number): Segmen
     }
   }
   return best;
+}
+
+interface RunSpan {
+  run: number;
+  start: number;
+  end: number;
+  depth: number;
+  label: string;
+}
+
+/** First-fit packing of branch runs into lanes, one depth per lane. Shared by both layouts. */
+function packRuns(spans: RunSpan[], maxLanes: number) {
+  const lanes: OverviewLane[] = [{ label: "main", depth: 0 }];
+  const laneEnds: number[] = [Number.POSITIVE_INFINITY];
+  const laneOf = new Map<number, number>();
+  for (const span of [...spans].sort((a, b) => a.start - b.start || a.run - b.run)) {
+    let lane = -1;
+    for (let i = 1; i < lanes.length; i++) {
+      if (lanes[i]?.depth === span.depth && (laneEnds[i] as number) <= span.start) {
+        lane = i;
+        break;
+      }
+    }
+    if (lane < 0) {
+      if (lanes.length < maxLanes) {
+        lane = lanes.length;
+        lanes.push({ label: span.label, depth: span.depth });
+        laneEnds.push(span.end);
+      } else lane = lanes.length - 1;
+    }
+    laneEnds[lane] = Math.max(laneEnds[lane] as number, span.end);
+    const existing = lanes[lane] as OverviewLane;
+    if (existing.label !== span.label) existing.label = "subagents";
+    laneOf.set(span.run, lane);
+  }
+  return { lanes, laneOf };
+}
+
+/**
+ * How many lanes `layoutOverview` will draw, without laying out every step: only branch runs
+ * are measured. Lets the overview reserve its height on first paint and lay out right after.
+ */
+export function overviewLaneCount(view: TraceView, options: OverviewOptions = {}): number {
+  if (!view.hasBranches) return 1;
+  const maxLanes = options.maxLanes ?? 6;
+  const timed = view.steps.reduce((n, s) => (s.step.timestamp ? n + 1 : n), 0);
+  const scale =
+    options.scale && options.scale !== "auto"
+      ? options.scale
+      : timed / view.steps.length >= 0.8
+        ? "time"
+        : "steps";
+  const spans: RunSpan[] = [];
+  let run = 0;
+  const visit = (trace: TraceView, depth: number) => {
+    for (const head of trace.steps) {
+      if (head.children.length) {
+        for (const members of branchRuns(trace, head)) {
+          run++;
+          let start = Number.POSITIVE_INFINITY;
+          let end = Number.NEGATIVE_INFINITY;
+          for (const m of members) {
+            const t = m.step.timestamp ? Date.parse(m.step.timestamp) : Number.NaN;
+            if (Number.isNaN(t)) continue;
+            start = Math.min(start, t);
+            end = Math.max(end, t + Math.max(m.durationMs ?? 0, 1));
+          }
+          if (scale === "steps") {
+            start = run;
+            end = run + 0.5;
+          }
+          if (Number.isFinite(start)) {
+            spans.push({
+              run,
+              start,
+              end,
+              depth: depth + head.depth + 1,
+              label: members[0]?.step.agent_role ?? "subagent",
+            });
+          }
+        }
+      }
+      const ref = head.step.subagent_trajectory_ref;
+      const nested = ref ? options.loaded?.get(ref) : undefined;
+      if (nested) {
+        run++;
+        let start = Number.POSITIVE_INFINITY;
+        let end = Number.NEGATIVE_INFINITY;
+        for (const m of nested.steps) {
+          const t = m.step.timestamp ? Date.parse(m.step.timestamp) : Number.NaN;
+          if (Number.isNaN(t)) continue;
+          start = Math.min(start, t);
+          end = Math.max(end, t + Math.max(m.durationMs ?? 0, 1));
+        }
+        if (scale === "steps") {
+          start = run;
+          end = run + 0.5;
+        }
+        if (Number.isFinite(start))
+          spans.push({ run, start, end, depth: depth + head.depth + 1, label: "subagent" });
+        visit(nested, depth + head.depth + 1);
+      }
+    }
+  };
+  visit(view, 0);
+  return packRuns(spans, maxLanes).lanes.length;
 }

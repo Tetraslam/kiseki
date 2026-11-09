@@ -1,6 +1,13 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { layoutOverview, normalize, parseTraces, segmentAt, type TraceRecord } from "../src";
+import {
+  layoutOverview,
+  normalize,
+  overviewLaneCount,
+  parseTraces,
+  segmentAt,
+  type TraceRecord,
+} from "../src";
 
 const load = (name: string) =>
   parseTraces(readFileSync(new URL(`../../../fixtures/${name}`, import.meta.url), "utf8"))
@@ -45,6 +52,24 @@ describe("overview", () => {
     expect(overview.segments.filter((s) => s.error).map((s) => s.key)).toEqual(["1", "2"]);
     const second = overview.segments[2];
     expect(segmentAt(overview, ((second?.start ?? 0) + (second?.end ?? 0)) / 2)?.key).toBe("2");
+  });
+
+  it("predicts the lane count without a full layout, for every fixture", () => {
+    for (const name of [
+      "opencode-ledger-review.json",
+      "opencode-tally.json",
+      "synthetic-300.json",
+      "errors.json",
+      "ai-sdk-package-scout.json",
+      "subagent-parent.json",
+    ]) {
+      const view = normalize(load(name));
+      for (const scale of ["auto", "time", "steps"] as const) {
+        expect(overviewLaneCount(view, { scale }), `${name} ${scale}`).toBe(
+          layoutOverview(view, { scale }).lanes.length,
+        );
+      }
+    }
   });
 
   it("lays out 10,000 steps quickly", () => {

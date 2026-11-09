@@ -91,15 +91,22 @@ export function normalize(record: TraceRecord, options: NormalizeOptions = {}): 
   let cacheReadTokens = 0;
 
   source.forEach((step, position) => {
-    const observations = new Map<string, Observation>();
-    if (step.observations?.length) {
-      for (const observation of step.observations) {
-        observations.set(observation.source_call_id, observation);
-      }
-    }
+    // Pair calls with observations. Steps hold a handful of each, so a scan beats a Map.
+    const observations = step.observations ?? EMPTY;
+    const used = observations.length ? new Array<boolean>(observations.length).fill(false) : EMPTY;
     const calls: PairedCall[] = (step.tool_calls ?? EMPTY).map((call) => {
-      const observation = observations.get(call.tool_call_id);
-      observations.delete(call.tool_call_id);
+      let observation: Observation | undefined;
+      for (let i = 0; i < observations.length; i++) {
+        if (!used[i] && (observations[i] as Observation).source_call_id === call.tool_call_id) {
+          // A retried call answered twice keeps the last answer.
+          if (observation) {
+            const first = observations.indexOf(observation);
+            used[first] = false;
+          }
+          observation = observations[i];
+          used[i] = true;
+        }
+      }
       const status: CallStatus = observation
         ? observation.error
           ? "error"
@@ -116,6 +123,14 @@ export function normalize(record: TraceRecord, options: NormalizeOptions = {}): 
         stepIndex: step.step_index,
       };
     });
+    const strays: Observation[] = [];
+    for (let i = 0; i < observations.length; i++) {
+      const observation = observations[i] as Observation;
+      if (used[i]) continue;
+      // A duplicate answer to a call that already has one isn't stray.
+      if (calls.some((c) => c.call.tool_call_id === observation.source_call_id)) continue;
+      strays.push(observation);
+    }
     toolCalls += calls.length;
     const tokens = step.token_usage ?? {};
     inputTokens += tokens.input_tokens ?? 0;
@@ -127,7 +142,7 @@ export function normalize(record: TraceRecord, options: NormalizeOptions = {}): 
       position,
       step,
       calls,
-      strayObservations: observations.size ? [...observations.values()] : EMPTY,
+      strayObservations: strays.length ? strays : EMPTY,
       patches: patchesByStep.get(step.step_index) ?? EMPTY,
       children: [],
       depth: 0,
@@ -205,8 +220,13 @@ export function normalize(record: TraceRecord, options: NormalizeOptions = {}): 
 const EMPTY: never[] = [];
 
 export function signatureOf(step: Step): string {
-  const tools = (step.tool_calls ?? []).map((call) => call.tool_name).sort();
-  return tools.length ? `${step.role}:${tools.join(",")}` : step.role;
+  const calls = step.tool_calls;
+  if (!calls?.length) return step.role;
+  if (calls.length === 1) return `${step.role}:${(calls[0] as { tool_name: string }).tool_name}`;
+  return `${step.role}:${calls
+    .map((call) => call.tool_name)
+    .sort()
+    .join(",")}`;
 }
 
 function push<K, V>(map: Map<K, V[]>, key: K, value: V) {
