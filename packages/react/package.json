@@ -1,0 +1,58 @@
+{
+  "name": "@tetraslam/kiseki",
+  "version": "0.1.0",
+  "description": "React components for reading agent traces.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tetraslam/kiseki",
+    "directory": "packages/react"
+  },
+  "homepage": "https://kiseki.sh",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown && cp src/styles.css dist/styles.css",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tanstack/react-virtual": "^3.14.26",
+    "@tetraslam/kiseki-core": "workspace:*",
+    "streamdown": "^2.7.1",
+    "use-stick-to-bottom": "^1.1.6"
+  },
+  "devDependencies": {
+    "@pierre/diffs": "^1.6.4",
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "jsdom": "^31.0.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@pierre/diffs": "^1.6.0"
+  },
+  "peerDependenciesMeta": {
+    "@pierre/diffs": {
+      "optional": true
+    }
+  }
+}

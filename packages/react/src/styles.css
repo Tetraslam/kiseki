@@ -1,0 +1,1035 @@
+/*
+ * kiseki. Every color, font, and curve is a --kiseki-* variable, so hosts restyle without forking.
+ * Surfaces are steps a few percent apart. State is an ink overlay. One accent hue.
+ * Defaults sit in :where() so any host rule on .kiseki overrides them, whatever the load order.
+ */
+
+:where(.kiseki) {
+  color-scheme: light;
+  --kiseki-font: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --kiseki-mono: "Commit Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --kiseki-size: 13px;
+  --kiseki-size-small: 12px;
+  --kiseki-line: 1.55;
+
+  --kiseki-bg: #e9e8e3;
+  --kiseki-surface: #f3f2ee;
+  --kiseki-raised: #f8f7f4;
+  --kiseki-sunken: #e3e2dd;
+  --kiseki-ink: #1c1c1e;
+  --kiseki-ink-2: #4c4d52;
+  --kiseki-ink-3: #6b6c72;
+  --kiseki-line-1: rgb(28 26 22 / 0.08);
+  --kiseki-line-2: rgb(28 26 22 / 0.12);
+  --kiseki-line-3: rgb(28 26 22 / 0.2);
+  --kiseki-hover: rgb(28 26 22 / 0.035);
+  --kiseki-hover-strong: rgb(28 26 22 / 0.06);
+  --kiseki-press: rgb(28 26 22 / 0.09);
+  --kiseki-accent: #d5683f;
+  --kiseki-accent-ink: #a5441f;
+  --kiseki-accent-wash: rgb(213 104 63 / 0.11);
+  --kiseki-danger: #b4372b;
+  --kiseki-danger-wash: rgb(180 55 43 / 0.08);
+
+  --kiseki-radius: 6px;
+  --kiseki-radius-small: 4px;
+  --kiseki-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --kiseki-morph: cubic-bezier(0.32, 0.72, 0, 1);
+  --kiseki-fast: 140ms;
+  --kiseki-standard: 220ms;
+  --kiseki-slow: 380ms;
+  --kiseki-measure: 72ch;
+
+  /* @pierre/diffs reads these through its shadow root. */
+  --diffs-font-family: var(--kiseki-mono);
+  --diffs-header-font-family: var(--kiseki-font);
+  --diffs-font-size: 12px;
+  --diffs-line-height: 19px;
+  --diffs-light-bg: var(--kiseki-raised);
+  --diffs-dark-bg: var(--kiseki-raised);
+}
+
+.kiseki {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  background: var(--kiseki-bg);
+  color: var(--kiseki-ink);
+  font-family: var(--kiseki-font);
+  font-size: var(--kiseki-size);
+  line-height: var(--kiseki-line);
+  font-feature-settings: "cv11", "ss03";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  outline: none;
+  position: relative;
+  isolation: isolate;
+}
+
+:where(.dark, [data-theme="dark"]) :where(.kiseki:not([data-theme="light"])),
+:where(.kiseki[data-theme="dark"]) {
+  color-scheme: dark;
+  --kiseki-bg: #1b1c1f;
+  --kiseki-surface: #212226;
+  --kiseki-raised: #28292e;
+  --kiseki-sunken: #18191b;
+  --kiseki-ink: #ececee;
+  --kiseki-ink-2: #b6b8be;
+  --kiseki-ink-3: #8f929a;
+  --kiseki-line-1: rgb(255 255 255 / 0.07);
+  --kiseki-line-2: rgb(255 255 255 / 0.11);
+  --kiseki-line-3: rgb(255 255 255 / 0.17);
+  --kiseki-hover: rgb(255 255 255 / 0.03);
+  --kiseki-hover-strong: rgb(255 255 255 / 0.06);
+  --kiseki-press: rgb(255 255 255 / 0.09);
+  --kiseki-accent: #f0845e;
+  --kiseki-accent-ink: #f39a79;
+  --kiseki-accent-wash: rgb(240 132 94 / 0.12);
+  --kiseki-danger: #ff8a7e;
+  --kiseki-danger-wash: rgb(255 138 126 / 0.08);
+}
+
+.kiseki *,
+.kiseki *::before,
+.kiseki *::after {
+  box-sizing: border-box;
+}
+
+.kiseki :where(button) {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-align: inherit;
+}
+
+.kiseki :where(button, a, input):focus-visible {
+  outline: 2px solid var(--kiseki-accent);
+  outline-offset: 1px;
+  border-radius: var(--kiseki-radius-small);
+}
+
+.kiseki-mono,
+.kiseki :where(code, pre, kbd) {
+  font-family: var(--kiseki-mono);
+  font-size: 12px;
+  font-variant-ligatures: none;
+}
+
+.kiseki-num {
+  font-family: var(--kiseki-mono);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.kiseki-dim {
+  color: var(--kiseki-ink-3);
+}
+
+/* header */
+
+.kiseki-header {
+  flex: none;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--kiseki-line-1);
+  background: var(--kiseki-bg);
+  display: grid;
+  gap: 6px;
+}
+
+.kiseki-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  max-width: var(--kiseki-measure);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.kiseki-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 4px;
+  color: var(--kiseki-ink-2);
+  font-size: var(--kiseki-size-small);
+}
+
+.kiseki-meta > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.kiseki-meta-label {
+  color: var(--kiseki-ink-3);
+}
+
+.kiseki-outcome {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--kiseki-hover-strong);
+  color: var(--kiseki-ink);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.kiseki-outcome::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--kiseki-ink-3);
+}
+
+.kiseki-outcome[data-state="success"]::before {
+  background: var(--kiseki-ink);
+}
+
+.kiseki-outcome[data-state="live"]::before {
+  background: var(--kiseki-accent);
+  animation: kiseki-pulse 1.2s var(--kiseki-ease) infinite;
+}
+
+.kiseki-failed {
+  color: var(--kiseki-danger);
+}
+
+.kiseki-outcome[data-state="failure"] {
+  background: var(--kiseki-danger-wash);
+  color: var(--kiseki-danger);
+}
+
+.kiseki-outcome[data-state="failure"]::before {
+  background: var(--kiseki-danger);
+}
+
+/* toolbar */
+
+.kiseki-toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px 0 12px;
+  border-bottom: 1px solid var(--kiseki-line-1);
+  background: var(--kiseki-bg);
+  font-size: var(--kiseki-size-small);
+  color: var(--kiseki-ink-3);
+}
+
+.kiseki-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--kiseki-radius);
+  transition: background var(--kiseki-fast) var(--kiseki-ease);
+}
+
+.kiseki-search:hover {
+  background: var(--kiseki-hover);
+}
+
+.kiseki-search:focus-within {
+  background: var(--kiseki-surface);
+  box-shadow: inset 0 0 0 1px var(--kiseki-line-2);
+}
+
+.kiseki-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--kiseki-ink);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.kiseki-search input::placeholder {
+  color: var(--kiseki-ink-3);
+}
+
+.kiseki-search input:focus-visible {
+  outline: none;
+}
+
+.kiseki-kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: var(--kiseki-radius-small);
+  box-shadow: inset 0 0 0 1px var(--kiseki-line-2);
+  font-family: var(--kiseki-mono);
+  font-size: 10.5px;
+  color: var(--kiseki-ink-3);
+}
+
+.kiseki-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--kiseki-radius-small);
+  color: var(--kiseki-ink-2);
+  transition: background var(--kiseki-fast) var(--kiseki-ease);
+}
+
+.kiseki-icon-button:hover {
+  background: var(--kiseki-hover-strong);
+}
+
+.kiseki-icon-button:active {
+  background: var(--kiseki-press);
+}
+
+.kiseki-icon-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+  background: none;
+}
+
+.kiseki-status {
+  min-width: 7ch;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* timeline */
+
+.kiseki-timeline {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.kiseki-scroll {
+  flex: 1;
+  min-height: 0;
+  /* One `overflow` value: use-stick-to-bottom finds the scroller by its computed shorthand. */
+  overflow: auto;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--kiseki-line-3) transparent;
+  contain: strict;
+  position: relative;
+}
+
+.kiseki-rows {
+  position: relative;
+  width: 100%;
+}
+
+.kiseki-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  contain: layout style;
+}
+
+.kiseki-row[data-flow] {
+  position: relative;
+}
+
+.kiseki-step {
+  --kiseki-depth: 0;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  padding: 8px 14px 8px 0;
+  position: relative;
+  cursor: default;
+}
+
+.kiseki-step::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: background var(--kiseki-fast) var(--kiseki-ease);
+}
+
+.kiseki-step:hover::before {
+  background: var(--kiseki-hover);
+}
+
+.kiseki-step[data-selected]::before {
+  background: var(--kiseki-hover-strong);
+  box-shadow: inset 2px 0 0 var(--kiseki-accent);
+}
+
+.kiseki-gutter {
+  color: var(--kiseki-accent-ink);
+}
+
+.kiseki-step[data-match] .kiseki-gutter::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 14px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--kiseki-accent);
+}
+
+.kiseki-gutter {
+  position: relative;
+  padding: 1px 10px 0 0;
+  text-align: right;
+  color: var(--kiseki-ink-3);
+  user-select: none;
+}
+
+.kiseki-step[data-match] .kiseki-body {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  padding-left: calc(var(--kiseki-depth) * 18px);
+  position: relative;
+}
+
+/* branch rails: one thin line per nesting level */
+.kiseki-body[data-depth]::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  left: 0;
+  width: calc(var(--kiseki-depth) * 18px);
+  pointer-events: none;
+  background-image: linear-gradient(to right, var(--kiseki-line-2) 1px, transparent 1px);
+  background-size: 18px 100%;
+  background-position: 5px 0;
+  background-repeat: repeat-x;
+}
+
+.kiseki-step-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  min-height: 20px;
+}
+
+.kiseki-role {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: var(--kiseki-ink-2);
+  text-transform: lowercase;
+}
+
+.kiseki-step[data-role="user"] .kiseki-role {
+  color: var(--kiseki-accent-ink);
+}
+
+.kiseki-step-meta {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  color: var(--kiseki-ink-3);
+  white-space: nowrap;
+  flex: none;
+}
+
+.kiseki-agent-role {
+  font-size: 11.5px;
+  color: var(--kiseki-ink-3);
+}
+
+/* messages */
+
+.kiseki-message {
+  max-width: var(--kiseki-measure);
+  overflow-wrap: anywhere;
+}
+
+.kiseki-message[data-role="user"] {
+  padding: 8px 11px;
+  border-radius: var(--kiseki-radius);
+  background: var(--kiseki-raised);
+  box-shadow: inset 0 0 0 1px var(--kiseki-line-1);
+  white-space: pre-wrap;
+}
+
+.kiseki-message[data-role="system"] {
+  color: var(--kiseki-ink-2);
+  white-space: pre-wrap;
+}
+
+.kiseki-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.kiseki-markdown > :first-child {
+  margin-top: 0;
+}
+
+.kiseki-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.kiseki-markdown :where(p, ul, ol, pre, blockquote, table) {
+  margin: 0 0 8px;
+}
+
+.kiseki-markdown :where(h1, h2, h3, h4, h5, h6) {
+  margin: 12px 0 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.kiseki-markdown :where(ul, ol) {
+  padding-left: 20px;
+}
+
+/* Hosts often reset list markers; markdown lists need theirs. */
+.kiseki-markdown ul {
+  list-style: disc;
+}
+
+.kiseki-markdown ol {
+  list-style: decimal;
+}
+
+.kiseki-markdown li + li {
+  margin-top: 2px;
+}
+
+.kiseki-markdown a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--kiseki-line-3);
+  text-underline-offset: 2px;
+}
+
+.kiseki-markdown a:hover {
+  text-decoration-color: currentColor;
+}
+
+.kiseki-markdown :not(pre) > code {
+  padding: 1px 4px;
+  border-radius: var(--kiseki-radius-small);
+  background: var(--kiseki-hover-strong);
+  font-size: 11.5px;
+}
+
+.kiseki-markdown pre,
+.kiseki-pre {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--kiseki-radius);
+  background: var(--kiseki-sunken);
+  overflow: auto;
+  white-space: pre;
+  line-height: 1.5;
+  scrollbar-width: thin;
+}
+
+.kiseki-markdown blockquote {
+  padding-left: 10px;
+  border-left: 2px solid var(--kiseki-line-3);
+  color: var(--kiseki-ink-2);
+}
+
+.kiseki-markdown table {
+  border-collapse: collapse;
+  font-size: 12px;
+  display: block;
+  overflow-x: auto;
+}
+
+.kiseki-markdown :where(th, td) {
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--kiseki-line-1);
+  text-align: left;
+}
+
+.kiseki-markdown hr {
+  border: 0;
+  border-top: 1px solid var(--kiseki-line-2);
+  margin: 10px 0;
+}
+
+/* disclosure: a block that grows in place */
+
+.kiseki-disclosure {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--kiseki-standard) var(--kiseki-morph);
+}
+
+.kiseki-disclosure[data-open] {
+  grid-template-rows: 1fr;
+}
+
+.kiseki-disclosure > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.kiseki-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 22px;
+  padding: 0 6px;
+  margin-left: -6px;
+  border-radius: var(--kiseki-radius-small);
+  color: var(--kiseki-ink-3);
+  font-size: var(--kiseki-size-small);
+  transition:
+    background var(--kiseki-fast) var(--kiseki-ease),
+    color var(--kiseki-fast) var(--kiseki-ease);
+}
+
+.kiseki-toggle:hover {
+  background: var(--kiseki-hover-strong);
+  color: var(--kiseki-ink-2);
+}
+
+.kiseki-chevron {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  transition: transform var(--kiseki-standard) var(--kiseki-morph);
+}
+
+[data-open] > .kiseki-chevron,
+.kiseki-toggle[aria-expanded="true"] > .kiseki-chevron {
+  transform: rotate(90deg);
+}
+
+/* reasoning */
+
+.kiseki-reasoning-text {
+  padding: 2px 0 2px 12px;
+  margin: 4px 0 2px 4px;
+  border-left: 1px solid var(--kiseki-line-2);
+  color: var(--kiseki-ink-3);
+  white-space: pre-wrap;
+  max-width: var(--kiseki-measure);
+  overflow-wrap: anywhere;
+}
+
+/* tool calls */
+
+.kiseki-calls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+}
+
+.kiseki-call {
+  border-radius: var(--kiseki-radius);
+  position: relative;
+}
+
+.kiseki-call[data-open] {
+  background: var(--kiseki-surface);
+  box-shadow: inset 0 0 0 1px var(--kiseki-line-1);
+}
+
+.kiseki-call-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 26px;
+  padding: 0 8px;
+  border-radius: var(--kiseki-radius);
+  transition: background var(--kiseki-fast) var(--kiseki-ease);
+}
+
+.kiseki-call-line:hover {
+  background: var(--kiseki-hover-strong);
+}
+
+.kiseki-call-line:active {
+  background: var(--kiseki-press);
+}
+
+.kiseki-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--kiseki-ink-3);
+}
+
+.kiseki-call[data-status="error"] .kiseki-dot {
+  background: var(--kiseki-danger);
+}
+
+.kiseki-call[data-status="missing"] .kiseki-dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--kiseki-ink-3);
+}
+
+.kiseki-call[data-status="pending"] .kiseki-dot {
+  background: var(--kiseki-accent);
+  animation: kiseki-pulse 1.2s var(--kiseki-ease) infinite;
+}
+
+.kiseki-call-name {
+  flex: none;
+  font-family: var(--kiseki-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--kiseki-ink);
+}
+
+.kiseki-call-arg {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--kiseki-mono);
+  font-size: 12px;
+  color: var(--kiseki-ink-2);
+}
+
+.kiseki-call-summary {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--kiseki-ink-3);
+  font-size: var(--kiseki-size-small);
+}
+
+.kiseki-call[data-status="error"] .kiseki-call-summary {
+  color: var(--kiseki-danger);
+}
+
+.kiseki-call-time {
+  flex: none;
+  color: var(--kiseki-ink-3);
+  min-width: 5ch;
+  text-align: right;
+}
+
+.kiseki-call-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  padding: 2px 8px 10px 22px;
+}
+
+.kiseki-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3px;
+  min-width: 0;
+}
+
+.kiseki-field-label {
+  font-size: 11px;
+  color: var(--kiseki-ink-3);
+  text-transform: lowercase;
+}
+
+.kiseki-output {
+  max-height: 360px;
+}
+
+.kiseki-error {
+  padding: 8px 10px;
+  border-radius: var(--kiseki-radius);
+  background: var(--kiseki-danger-wash);
+  color: var(--kiseki-danger);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.kiseki-note {
+  color: var(--kiseki-ink-3);
+  font-size: var(--kiseki-size-small);
+}
+
+.kiseki-shimmer {
+  color: transparent;
+  background:
+    linear-gradient(
+      90deg,
+      var(--kiseki-ink-3) 0%,
+      var(--kiseki-ink-3) 40%,
+      var(--kiseki-ink) 50%,
+      var(--kiseki-ink-3) 60%,
+      var(--kiseki-ink-3) 100%
+    )
+    0 0 / 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: kiseki-shimmer 1.8s linear infinite;
+}
+
+/* patches */
+
+.kiseki-patch {
+  border-radius: var(--kiseki-radius);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--kiseki-line-1);
+  background: var(--kiseki-raised);
+}
+
+.kiseki-patch-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: var(--kiseki-size-small);
+  transition: background var(--kiseki-fast) var(--kiseki-ease);
+}
+
+.kiseki-patch-line:hover {
+  background: var(--kiseki-hover-strong);
+}
+
+.kiseki-patch-path {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Clip long paths from the left, keeping the file name. The inner bdi keeps "/" in place. */
+  direction: rtl;
+  text-align: left;
+  font-family: var(--kiseki-mono);
+  font-size: 12px;
+}
+
+.kiseki-add {
+  color: var(--kiseki-ink);
+}
+
+.kiseki-del {
+  color: var(--kiseki-ink-3);
+}
+
+.kiseki-patch-body {
+  border-top: 1px solid var(--kiseki-line-1);
+  min-height: 40px;
+}
+
+/* branches */
+
+.kiseki-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+  padding: 0 9px 0 7px;
+  margin-left: -1px;
+  border-radius: var(--kiseki-radius);
+  box-shadow: inset 0 0 0 1px var(--kiseki-line-2);
+  font-size: var(--kiseki-size-small);
+  color: var(--kiseki-ink-2);
+  width: fit-content;
+  transition: background var(--kiseki-fast) var(--kiseki-ease);
+}
+
+.kiseki-branch:hover {
+  background: var(--kiseki-hover-strong);
+}
+
+.kiseki-branch[aria-expanded="true"] {
+  background: var(--kiseki-surface);
+}
+
+/* new rows in live mode */
+
+.kiseki-row[data-new] > .kiseki-step {
+  animation: kiseki-arrive var(--kiseki-slow) var(--kiseki-ease) both;
+}
+
+.kiseki-follow {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: var(--kiseki-ink);
+  color: var(--kiseki-bg);
+  font-size: var(--kiseki-size-small);
+  font-weight: 500;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.14);
+  transition:
+    opacity var(--kiseki-standard) var(--kiseki-ease),
+    transform var(--kiseki-standard) var(--kiseki-ease);
+}
+
+.kiseki-follow[data-hidden] {
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+}
+
+/* empty and overview */
+
+.kiseki-empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  min-height: 120px;
+  color: var(--kiseki-ink-3);
+}
+
+.kiseki-overview {
+  display: grid;
+  gap: 1px;
+  padding: 8px;
+  font-size: var(--kiseki-size-small);
+}
+
+.kiseki-overview button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  padding: 0 8px;
+  padding-left: calc(8px + var(--kiseki-depth, 0) * 14px);
+  border-radius: var(--kiseki-radius-small);
+  color: var(--kiseki-ink-2);
+}
+
+.kiseki-overview button:hover {
+  background: var(--kiseki-hover-strong);
+}
+
+/* compare */
+
+.kiseki-compare-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--kiseki-line-1);
+}
+
+.kiseki-compare-head > .kiseki-header {
+  border-bottom: 0;
+}
+
+.kiseki-compare-head > .kiseki-header + .kiseki-header {
+  border-left: 1px solid var(--kiseki-line-1);
+}
+
+.kiseki-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  position: relative;
+}
+
+.kiseki-pair > div {
+  min-width: 0;
+}
+
+.kiseki-pair > div + div {
+  border-left: 1px solid var(--kiseki-line-1);
+}
+
+.kiseki-pair[data-diverged] {
+  background: var(--kiseki-accent-wash);
+}
+
+.kiseki-pair[data-first-divergence]::before {
+  content: "runs diverge here";
+  position: absolute;
+  top: 0;
+  right: 14px;
+  z-index: 1;
+  transform: translateY(-50%);
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--kiseki-accent);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.kiseki-gap {
+  height: 100%;
+  min-height: 36px;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 6px,
+    var(--kiseki-line-1) 6px 7px
+  );
+}
+
+@keyframes kiseki-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes kiseki-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes kiseki-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kiseki *,
+  .kiseki *::before,
+  .kiseki *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion has to beat every component rule. */
+    animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: as above. */
+    animation-iteration-count: 1 !important;
+    /* biome-ignore lint/complexity/noImportantStyles: as above. */
+    transition-duration: 0.01ms !important;
+  }
+}
