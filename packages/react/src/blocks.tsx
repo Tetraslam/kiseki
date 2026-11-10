@@ -2,6 +2,7 @@ import type { DiffFileInput } from "@pierre/diffs";
 import { align, type PairedCall, type Patch, type ViewStep } from "@tetraslam/kiseki-core";
 import {
   type ComponentType,
+  type CSSProperties,
   memo,
   type ReactNode,
   useEffect,
@@ -13,6 +14,7 @@ import {
 import { Streamdown } from "streamdown";
 import { callKey, patchKey, useTrace } from "./context";
 import { wordCount } from "./format";
+import { Reveal } from "./motion";
 import { derivePatch, lineCounts } from "./patches";
 import { ToolCallBlock } from "./tools";
 import type { PatchContent, ToolRendererProps } from "./types";
@@ -27,21 +29,7 @@ export function Chevron() {
 
 /** Grows its content in place on the open curve. Closed content isn't mounted. */
 export function Disclosure({ open, children }: { open: boolean; children: ReactNode }) {
-  const [mounted, setMounted] = useState(open);
-  useEffect(() => {
-    if (open) setMounted(true);
-  }, [open]);
-  return (
-    <div
-      className="kiseki-disclosure"
-      data-open={open || undefined}
-      onTransitionEnd={(event) => {
-        if (event.target === event.currentTarget && !open) setMounted(false);
-      }}
-    >
-      <div>{(open || mounted) && children}</div>
-    </div>
-  );
+  return <Reveal open={open}>{() => children}</Reveal>;
 }
 
 const markdownComponents = {
@@ -330,12 +318,43 @@ export function DiffView({
   useEffect(() => {
     if (!module) loadDiffs().then(setModule, () => setFailed(true));
   }, [module]);
+  // Whether pierre has drawn lines (`drawn`), and whether the placeholder has finished fading.
+  const [drawn, setDrawn] = useState(false);
+  const visibleLines = useRef(0);
+  const [painted, setPainted] = useState(false);
+  useEffect(() => {
+    if (!module || failed || drawn) return;
+    let frame = 0;
+    const look = () => {
+      const box = ref.current;
+      const hosts = box ? [box, ...box.querySelectorAll("*")] : [];
+      // Pierre paints lines over a few frames; wait until the visible ones are all there.
+      const want = Math.min(visibleLines.current, 40);
+      const lines = hosts.some(
+        (el) =>
+          (el.shadowRoot ?? el).querySelectorAll("[data-line]").length >= want &&
+          (el.shadowRoot ?? el).querySelector("[data-line]"),
+      );
+      if (lines) setDrawn(true);
+      else frame = requestAnimationFrame(look);
+    };
+    frame = requestAnimationFrame(look);
+    return () => cancelAnimationFrame(frame);
+  }, [module, failed, drawn]);
+  useEffect(() => {
+    if (!drawn || !ref.current) return;
+    const wait = ref.current.querySelector(".kiseki-diff-wait");
+    if (!wait || Number.parseFloat(getComputedStyle(wait).transitionDuration) === 0)
+      setPainted(true);
+  }, [drawn]);
   const sides = useMemo(() => diffSides(content), [content]);
+  const plain = useMemo(() => plainDiff(sides), [sides]);
   const lineCount = useMemo(() => diffLines(sides), [sides]);
   const full = lineCount * DIFF_LINE + DIFF_PAD;
   const capped = lineCount > DIFF_CAP + 3;
   const showAll = !capped || (expandKey ? context.isExpanded(expandKey) : false);
   const height = showAll ? full : DIFF_CAP * DIFF_LINE + DIFF_PAD;
+  visibleLines.current = showAll ? lineCount : Math.min(lineCount, DIFF_CAP);
   const options = useMemo(
     () => ({
       theme: { dark: "pierre-dark", light: "pierre-light" },
@@ -367,12 +386,28 @@ export function DiffView({
         data-full-height={full}
         style={{ height }}
       >
-        {!module || failed ? (
-          <pre className="kiseki-diff-wait" style={{ height: full }}>
-            {plainDiff(sides)}
+        {module && !failed && <module.MultiFileDiff {...files} options={options} />}
+        {/* The plain diff holds the space and looks like the diff, until pierre has painted lines;
+            then it fades out over them, so the swap never shows a blank frame. */}
+        {!painted && (
+          <pre
+            className="kiseki-diff-wait"
+            data-leaving={(module && !failed && drawn) || undefined}
+            style={{ height: full, "--kiseki-digits": String(lineCount).length } as CSSProperties}
+            onTransitionEnd={() => setPainted(true)}
+          >
+            {plain.map((line, i) => (
+              <span
+                // biome-ignore lint/suspicious/noArrayIndexKey: lines of a fixed diff.
+                key={i}
+                data-kind={line.kind}
+              >
+                <span className="kiseki-diff-wait-num">{line.n}</span>
+                {line.text}
+                {"\n"}
+              </span>
+            ))}
           </pre>
-        ) : (
-          <module.MultiFileDiff {...files} options={options} />
         )}
       </div>
       {capped && expandKey && (
@@ -392,18 +427,24 @@ export function DiffView({
   );
 }
 
-function plainDiff(sides: { before: string | null; after: string | null }): string {
-  const a = sides.before == null ? [] : sides.before.split("\n");
-  const b = sides.after == null ? [] : sides.after.split("\n");
-  if (!a.length) return b.map((l) => `+ ${l}`).join("\n");
-  if (!b.length) return a.map((l) => `- ${l}`).join("\n");
-  return align(a, b)
-    .map((p) =>
+interface PlainLine {
+  kind?: "add" | "del";
+  n: number;
+  text: string;
+}
+
+/** The diff as plain lines, numbered the way pierre numbers a unified diff. */
+function plainDiff(sides: { before: string | null; after: string | null }): PlainLine[] {
+  const a = sides.before == null ? [] : sides.before.replace(/\n$/, "").split("\n");
+  const b = sides.after == null ? [] : sides.after.replace(/\n$/, "").split("\n");
+  if (!a.length) return b.map((text, i) => ({ kind: "add", n: i + 1, text }));
+  if (!b.length) return a.map((text, i) => ({ kind: "del", n: i + 1, text }));
+  return align(a, b).map(
+    (p): PlainLine =>
       p.a != null && p.b != null
-        ? `  ${a[p.a]}`
+        ? { n: p.b + 1, text: a[p.a] ?? "" }
         : p.a != null
-          ? `- ${a[p.a]}`
-          : `+ ${b[p.b as number]}`,
-    )
-    .join("\n");
+          ? { kind: "del", n: p.a + 1, text: a[p.a] ?? "" }
+          : { kind: "add", n: (p.b as number) + 1, text: b[p.b as number] ?? "" },
+  );
 }

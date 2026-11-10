@@ -7,31 +7,50 @@ export interface Row {
   depth: number;
   /** The trace that owns the step: the root trace, or a loaded subagent trace. */
   trace: TraceView;
-  /** Whether the step heads a branch (inline children or a subagent reference). */
+  /** Whether the step launched subagents (inline children or a subagent reference). */
   branch: boolean;
   /** Steps under this head, when known. */
   branchSize?: number;
+  /** Whether any of its subagent runs is unfolded. */
   open: boolean;
+  /** The subagent run this step belongs to, when it's inside one. */
+  run?: string;
 }
 
 export interface RowOptions {
-  /** Keys of branch heads the user unfolded. Branches start folded. */
+  /**
+   * Keys of unfolded subagent runs (`<head key>~<n>`, see `runKey`). Each subagent a step
+   * launched folds on its own; all start folded.
+   */
   unfolded: ReadonlySet<string>;
   /** Subagent traces loaded through `loadTrace`, keyed by `subagent_trajectory_ref`. */
   loaded?: ReadonlyMap<string, TraceView>;
 }
 
-/** Flattens the step tree into the rows the timeline shows, in pre-order. */
+/** The key of the n-th subagent run a step launched. */
+export const runKey = (head: string, n: number) => `${head}~${n}`;
+
+/**
+ * Flattens the step tree into the rows the timeline shows. A subagent's turns come right after
+ * the turn that launched it, one run at a time, so parallel subagents read as siblings, never
+ * interleaved through the parent's turns.
+ */
 export function visibleRows(view: TraceView, options: RowOptions): Row[] {
   const rows: Row[] = [];
-  const walk = (trace: TraceView, indices: number[], baseDepth: number) => {
+  const walk = (trace: TraceView, indices: number[], baseDepth: number, run?: string) => {
     for (const index of indices) {
       const step = trace.byIndex.get(index);
       if (!step) continue;
       const ref = step.step.subagent_trajectory_ref;
       const nested = ref ? options.loaded?.get(ref) : undefined;
-      const branch = step.children.length > 0 || !!ref;
-      const open = branch && options.unfolded.has(step.key);
+      const runs = step.children.length ? branchRuns(trace, step) : [];
+      const branch = runs.length > 0 || !!ref;
+      const keys = runs.length
+        ? runs.map((_, i) => runKey(step.key, i))
+        : ref
+          ? [runKey(step.key, 0)]
+          : [];
+      const open = keys.some((key) => options.unfolded.has(key));
       rows.push({
         view: step,
         depth: baseDepth + step.depth,
@@ -39,14 +58,34 @@ export function visibleRows(view: TraceView, options: RowOptions): Row[] {
         branch,
         branchSize: branch ? countBranch(trace, step) + (nested?.steps.length ?? 0) : undefined,
         open,
+        run,
       });
-      if (!open) continue;
-      walk(trace, step.children, baseDepth);
-      if (nested) walk(nested, nested.roots, baseDepth + step.depth + 1);
+      runs.forEach((members, i) => {
+        const key = runKey(step.key, i);
+        if (options.unfolded.has(key))
+          walk(
+            trace,
+            members.map((m) => m.index),
+            baseDepth,
+            key,
+          );
+      });
+      if (nested && options.unfolded.has(runKey(step.key, 0))) {
+        walk(nested, nested.roots, baseDepth + step.depth + 1, runKey(step.key, 0));
+      }
     }
   };
   walk(view, view.roots, 0);
   return rows;
+}
+
+/** The run key a step sits in, under the step that launched it. */
+export function runOf(trace: TraceView, step: ViewStep): string | undefined {
+  if (step.parent == null) return undefined;
+  const head = trace.byIndex.get(step.parent);
+  if (!head) return undefined;
+  const i = branchRuns(trace, head).findIndex((members) => members.includes(step));
+  return i >= 0 ? runKey(head.key, i) : undefined;
 }
 
 function countBranch(trace: TraceView, step: ViewStep): number {
@@ -61,13 +100,14 @@ function countBranch(trace: TraceView, step: ViewStep): number {
   return total;
 }
 
-/** Keys of every branch head above a step, outermost first. Unfold these to reveal it. */
+/** Keys of every subagent run above a step, outermost first. Unfold these to reveal it. */
 export function ancestorsOf(trace: TraceView, step: ViewStep): string[] {
   const keys: string[] = [];
-  let parent = step.parent != null ? trace.byIndex.get(step.parent) : undefined;
-  while (parent) {
-    keys.unshift(parent.key);
-    parent = parent.parent != null ? trace.byIndex.get(parent.parent) : undefined;
+  let current: ViewStep | undefined = step;
+  while (current && current.parent != null) {
+    const run = runOf(trace, current);
+    if (run) keys.unshift(run);
+    current = trace.byIndex.get(current.parent);
   }
   return keys;
 }

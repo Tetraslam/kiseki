@@ -36,6 +36,8 @@ export {
   branchTree,
   type Row,
   type RowOptions,
+  runKey,
+  runOf,
   visibleRows,
 } from "./tree";
 export type * from "./types";

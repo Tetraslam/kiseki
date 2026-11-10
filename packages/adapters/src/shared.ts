@@ -1,4 +1,5 @@
 import type {
+  Attachment,
   Metrics,
   Observation,
   Patch,
@@ -382,4 +383,57 @@ export function parseLines(text: string): Json[] {
     } catch {}
   }
   return out;
+}
+
+/** An image or file part from a log, as a kiseki attachment. Paths are cut to the file name. */
+export function attachment(
+  url: string | undefined,
+  mime?: string,
+  name?: string,
+): Attachment | undefined {
+  if (!url) return undefined;
+  const media = mime ?? /^data:([^;,]+)/.exec(url)?.[1];
+  const image = media?.startsWith("image/") ?? false;
+  const size = image ? imageSize(url) : undefined;
+  return clean<Attachment>({
+    type: image ? "image" : "file",
+    media_type: media,
+    url,
+    name: name?.split(/[\\/]/).at(-1),
+    width: size?.width,
+    height: size?.height,
+  });
+}
+
+/** Width and height from a base64 PNG, GIF, or JPEG data URL's header. */
+export function imageSize(url: string): { width: number; height: number } | undefined {
+  const match = /^data:image\/(png|gif|jpeg|jpg|webp);base64,(.*)$/s.exec(url);
+  if (!match) return undefined;
+  let bytes: Uint8Array;
+  try {
+    const raw = (match[2] as string).slice(0, 65536).replace(/\s/g, "");
+    const head = atob(raw.slice(0, raw.length - (raw.length % 4)));
+    bytes = Uint8Array.from(head, (c) => c.charCodeAt(0));
+  } catch {
+    return undefined;
+  }
+  const u16 = (i: number) => ((bytes[i] ?? 0) << 8) | (bytes[i + 1] ?? 0);
+  const u32 = (i: number) => (u16(i) * 65536 + u16(i + 2)) >>> 0;
+  if (match[1] === "png" && bytes.length >= 24) return { width: u32(16), height: u32(20) };
+  if (match[1] === "gif" && bytes.length >= 10)
+    return {
+      width: (bytes[6] ?? 0) | ((bytes[7] ?? 0) << 8),
+      height: (bytes[8] ?? 0) | ((bytes[9] ?? 0) << 8),
+    };
+  if (match[1] === "jpeg" || match[1] === "jpg") {
+    let i = 2;
+    while (i + 9 < bytes.length) {
+      if (bytes[i] !== 0xff) return undefined;
+      const marker = bytes[i + 1] ?? 0;
+      if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc)
+        return { width: u16(i + 7), height: u16(i + 5) };
+      i += 2 + u16(i + 2);
+    }
+  }
+  return undefined;
 }

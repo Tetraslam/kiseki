@@ -4,6 +4,7 @@
 | --- | --- |
 | `opencode-ledger-month.json` | real: claude-sonnet-5 in OpenCode sending two explore subagents in parallel, fixing the ledger repo, and adding a `--month` option with a test (12 of 12 pass). The site's coding session. |
 | `opencode-research.json` | real: claude-sonnet-5 in OpenCode searching the web (Tavily) and reading four pages to choose between sqlite-vec and pgvector, answering with numbered citations. The site's custom-renderer demo. Two sentences where the agent remarked on a harness notice were removed. |
+| `opencode-attachments.json` | real: claude-sonnet-5 in OpenCode given a screenshot of the report's wrong output, reading `examples/expected.png`, and fixing the parser and rounding (10 of 10 pass). Carries kiseki's `attachments` extension on the prompt and on the read result. |
 | `opencode-ledger-json-flag.json` | real: claude-haiku-4-5 in OpenCode fixing seven failing tests in a toy ledger repo, then adding a `--json` flag with a test. The site's coding session. |
 | `opencode-ledger-review.json` | real: claude-sonnet-5-5 launching three explore subagents in parallel to review the same repo. |
 | `opencode-ledger-sonnet.json`, `opencode-ledger-haiku.json` | real: the same "make the tests pass" prompt run by sonnet 5.5 and haiku 4.5, for compare. |

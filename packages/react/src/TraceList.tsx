@@ -1,6 +1,5 @@
 import { normalize, type RunSummary, summarizeRun, type TraceRecord } from "@tetraslam/kiseki-core";
 import { type CSSProperties, useMemo } from "react";
-import { formatCost, formatDuration, shortModel } from "./format";
 
 export interface TraceListProps {
   records: TraceRecord[];
@@ -16,8 +15,8 @@ export interface TraceListProps {
 }
 
 /**
- * A list of runs, one row each: outcome, what was asked, and the signals that say whether to open
- * it. Rows are buttons; arrow keys move between them.
+ * A list of runs, one row each: what was asked, and a plain line of what happened (failed, tests,
+ * edits, subagents). Rows are buttons; arrow keys move between them.
  */
 export function TraceList({
   records,
@@ -72,24 +71,16 @@ export function TraceList({
           onClick={() => onSelect?.(run.key)}
         >
           <span className="kiseki-run-head">
-            <span className="kiseki-outcome-mark" data-state={run.outcome} />
             <span className="kiseki-run-title">{run.title}</span>
             <span className="kiseki-run-when kiseki-num">{ago(run.startedAt, now)}</span>
           </span>
-          {run.signals.length > 0 && (
-            <span className="kiseki-run-signals">
-              {run.signals.map((signal) => (
-                <span key={signal.label} className="kiseki-signal" data-tone={signal.tone}>
-                  {signal.label}
-                </span>
-              ))}
-            </span>
-          )}
-          <span className="kiseki-run-meta kiseki-num">
-            {shortModel(run.model) || run.agent}
-            {` · ${run.steps} steps`}
-            {run.durationMs != null && ` · ${formatDuration(run.durationMs)}`}
-            {run.costUsd != null && ` · ${formatCost(run.costUsd)}`}
+          <span className="kiseki-run-signals" data-outcome={run.outcome}>
+            {[
+              run.outcome === "failure" ? "failed" : run.outcome === "live" ? "running" : "",
+              ...run.signals.map((s) => s.label),
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </span>
         </button>
       ))}

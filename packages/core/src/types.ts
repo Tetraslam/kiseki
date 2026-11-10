@@ -16,11 +16,26 @@ export interface ToolCall {
   duration_ms?: number;
 }
 
+/**
+ * kiseki extension, not in OpenTraces 0.9: an image or file attached to a prompt or returned by
+ * a tool. `url` is an http(s) or data: URL. Width and height, when known, let a viewer reserve
+ * the image's space before it loads.
+ */
+export interface Attachment {
+  type: "image" | "file";
+  media_type?: string;
+  url?: string;
+  name?: string;
+  width?: number;
+  height?: number;
+}
+
 export interface Observation {
   source_call_id: string;
   content?: string;
   output_summary?: string;
   error?: string;
+  attachments?: Attachment[];
 }
 
 export type StepRole = "system" | "user" | "agent";
@@ -42,6 +57,8 @@ export interface Step {
   observations?: Observation[];
   token_usage?: TokenUsage;
   timestamp?: string;
+  /** kiseki extension: images and files attached to this turn, such as a pasted screenshot. */
+  attachments?: Attachment[];
   [key: string]: unknown;
 }
 

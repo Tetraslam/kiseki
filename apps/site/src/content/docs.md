@@ -31,7 +31,7 @@ export function TraceView({ record }) {
 
 By default `<Trace>` fills its parent's height and scrolls inside it. Pass `scroll="page"` to let it grow with the document instead: the overview and search stay pinned while the page scrolls, and there is no second scroller. The first rows render on the server, so the first paint is the trace itself, and the virtualizer takes over before the browser paints.
 
-A trace reads top to bottom as a run of turns. A quiet bar gives the outcome, duration, steps, calls, tokens, and cost. Each turn has a thin rule with its number and time, then what the agent thought and said at full weight, then its tool calls as compact lines with results beneath. The prompt is the first turn and the answer is the last. The **map** (the trajectory over time, with a lane per parallel subagent) is a toggle in the bar.
+A trace reads top to bottom as a run of turns. The bar gives the outcome; duration, turns, calls, tokens, and cost are under **details**. Each turn has its number in the gutter (hover for its time and tokens), then what the agent thought and said at full weight, then its tool calls as one-line rows with their results. A subagent is one block in the turn that launched it, with its task and answer; open it to read its turns. The prompt is the first turn and the answer is the last. The **map** (the trajectory over time, with a lane per parallel subagent) is a toggle in the bar.
 
 To parse text yourself (a `.json` record, a JSON array, or JSONL with one record per line):
 
@@ -152,7 +152,7 @@ Pass `scroll="page"` to render every pair in the page's flow (fine for runs of a
 
 ## A list of runs
 
-`<TraceList>` lists runs, one row each: the outcome, what was asked, and signals read from the trace (tests that went from failing to passing, tool errors, files edited, subagents), then model, steps, time, and cost.
+`<TraceList>` lists runs, one row each: what was asked, then a plain line read from the trace (failed, tests that went from failing to passing, tool errors, files edited, subagents).
 
 ```tsx
 import { TraceList, Trace } from "@tetraslam/kiseki";
@@ -163,13 +163,24 @@ import { TraceList, Trace } from "@tetraslam/kiseki";
 
 Pass `summarize` to add your own signals, such as what the user did next.
 
+## Attachments
+
+Images and files on a turn or a tool result render inline, their space reserved from `width` and `height`. They're a kiseki extension to OpenTraces:
+
+```ts
+step.attachments = [{ type: "image", media_type: "image/png", url: "data:image/png;base64,…", width: 640, height: 220 }];
+observation.attachments = [/* same shape */];
+```
+
+The OpenCode adapter fills them from pasted files and image tool results.
+
 ## Keyboard
 
 | key       | action                                                  |
 | --------- | ------------------------------------------------------- |
 | `j` / `k` | next / previous step                                    |
 | `enter`   | open or close every block of the step                   |
-| `[` / `]` | fold / unfold a subagent branch                         |
+| `[` / `]` | fold / unfold a turn's subagents                         |
 | `/`       | search. `enter` and `shift+enter` move between matches. |
 | `c`       | copy a permalink to the step                            |
 | `esc`     | clear the search, then the selection                    |

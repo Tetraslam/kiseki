@@ -11,6 +11,8 @@ export interface TraceContextValue extends TraceLoaders {
   renderers: Renderers;
   live: boolean;
   isExpanded: (key: string) => boolean;
+  /** Whether a subagent run (`runKey`) is unfolded. */
+  isUnfolded?: (run: string) => boolean;
   toggle: (key: string) => void;
   /** Survives rows unmounting as they scroll away, so a row comes back at the same height. */
   payloads: Map<string, PayloadEntry>;

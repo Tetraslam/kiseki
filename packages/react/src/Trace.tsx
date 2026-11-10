@@ -1,8 +1,11 @@
 import {
   ancestorsOf,
+  branchRuns,
   layoutOverview,
   normalize,
   overviewLaneCount,
+  type Row,
+  runKey,
   type Step,
   searchSteps,
   type TraceRecord,
@@ -197,7 +200,7 @@ export function Trace(props: TraceProps) {
     (located: Located): string[] => {
       const keys = ancestorsOf(located.trace, located.view);
       const owner = owners.get(located.trace);
-      return owner ? [...ancestors(owner), owner.view.key, ...keys] : keys;
+      return owner ? [...ancestors(owner), runKey(owner.view.key, 0), ...keys] : keys;
     },
     [owners],
   );
@@ -217,7 +220,8 @@ export function Trace(props: TraceProps) {
   // Load subagent traces as their branches unfold.
   const loadTraceRef = useLatest(loadTrace);
   useEffect(() => {
-    for (const key of unfolded) {
+    for (const run of unfolded) {
+      const key = headOf(run);
       const located = byKey.get(key);
       const ref = located?.view.step.subagent_trajectory_ref;
       if (!ref || loaded.has(ref) || branchStates.has(key)) continue;
@@ -320,6 +324,7 @@ export function Trace(props: TraceProps) {
       loadTrace,
       loadPatch,
       isExpanded: (key) => expanded.has(key),
+      isUnfolded: (run) => unfolded.has(run),
       toggle,
       payloads,
       traceModel: record.agent.model,
@@ -338,6 +343,7 @@ export function Trace(props: TraceProps) {
       loadTrace,
       loadPatch,
       expanded,
+      unfolded,
       toggle,
       payloads,
       record.agent.model,
@@ -468,19 +474,23 @@ export function Trace(props: TraceProps) {
             ...(v.step.role === "system" && v.step.content ? [systemKey(v.key)] : []),
           ];
           if (keys.length) setExpanded((prev) => toggleIn(prev, keys));
-          else if (row.branch) toggleBranch(v.key);
+          else if (row.branch) toggleBranch(runKey(v.key, 0));
           else return;
           break;
         }
         case "[": {
           if (!row) return;
-          if (row.branch && row.open) toggleBranch(row.view.key);
-          else {
+          if (row.branch && row.open) {
+            const open = runsOf(row).filter((k) => unfolded.has(k));
+            timeline.current?.anchor(row.view.key);
+            setUnfolded((prev) => toggleIn(prev, open, false));
+          } else {
             const located = byKey.get(row.view.key);
             const above = located ? ancestors(located) : [];
-            const head = above.at(-1);
-            if (!head) return;
-            setUnfolded((prev) => toggleIn(prev, [head], false));
+            const run = above.at(-1);
+            if (!run) return;
+            const head = headOf(run);
+            setUnfolded((prev) => toggleIn(prev, [run], false));
             setSelected(head);
             pendingScroll.current = head;
           }
@@ -488,7 +498,8 @@ export function Trace(props: TraceProps) {
         }
         case "]":
           if (!row?.branch || row.open) return;
-          toggleBranch(row.view.key);
+          timeline.current?.anchor(row.view.key);
+          setUnfolded((prev) => toggleIn(prev, runsOf(row), true));
           break;
         case "/":
           searchInput.current?.focus();
@@ -511,6 +522,7 @@ export function Trace(props: TraceProps) {
     [
       selected,
       rows,
+      unfolded,
       reveal,
       setExpanded,
       toggleBranch,
@@ -670,6 +682,15 @@ export function Trace(props: TraceProps) {
       </section>
     </TraceContext.Provider>
   );
+}
+
+/** The step key a run key hangs off. */
+const headOf = (run: string) => run.replace(/~\d+$/, "");
+
+/** Every run key a branch row can unfold. */
+function runsOf(row: Row): string[] {
+  const n = branchRuns(row.trace, row.view).length || 1;
+  return Array.from({ length: n }, (_, i) => runKey(row.view.key, i));
 }
 
 function SearchIcon() {

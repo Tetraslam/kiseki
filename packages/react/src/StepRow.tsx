@@ -1,8 +1,10 @@
-import { branchRuns, type Row } from "@tetraslam/kiseki-core";
+import { branchRuns, type Row, runKey, type ViewStep } from "@tetraslam/kiseki-core";
 import { memo } from "react";
+import { Attachments } from "./attachments";
 import { CallSlot, Chevron, Message, PatchBlock, Reasoning } from "./blocks";
 import { reasoningKey, systemKey, useTrace } from "./context";
 import { elapsed, formatDuration, formatTokens, oneLine, shortModel } from "./format";
+import { toolKind } from "./tools";
 
 export type BranchState = "idle" | "loading" | "loaded" | "error";
 
@@ -35,10 +37,15 @@ export const StepRow = memo(function StepRow({
   const context = useTrace();
   const { view, trace } = row;
   const { step } = view;
-  const { renderers, outliers } = context;
+  const { renderers } = context;
   const model = step.model && step.model !== context.traceModel ? shortModel(step.model) : "";
   const totalTokens = (view.tokens.input_tokens ?? 0) + (view.tokens.output_tokens ?? 0);
   const callIds = new Set(view.calls.map((c) => c.call.tool_call_id));
+  // Subagents this turn launched. Each is one block, in place of the call that started it.
+  const runs = row.branch ? branchRuns(trace, view) : [];
+  const taskCalls = view.calls.filter((c) => toolKind(c.call.tool_name, c.call.input) === "task");
+  const replaceTasks = runs.length > 0 && taskCalls.length === runs.length;
+  const shownCalls = replaceTasks ? view.calls.filter((c) => !taskCalls.includes(c)) : view.calls;
   const loosePatches = view.patches.filter((p) => !p.tool_call_id || !callIds.has(p.tool_call_id));
   const latest = trace.steps.at(-1) === view;
   const streaming = trace.live && latest;
@@ -79,25 +86,26 @@ export const StepRow = memo(function StepRow({
       onClick={() => onSelect(view.key)}
     >
       {/* The turn's number and time sit in the gutter; turns separate by spacing, not rules. */}
-      <div className="kiseki-gutter kiseki-num" aria-hidden="true">
+      {/* The gutter holds the turn number. Time, duration, tokens, and model are on hover. */}
+      <div
+        className="kiseki-gutter kiseki-num"
+        aria-hidden="true"
+        title={
+          [
+            time,
+            view.durationMs != null ? formatDuration(view.durationMs) : "",
+            totalTokens > 0 ? `${formatTokens(totalTokens)} tokens` : "",
+            model,
+          ]
+            .filter(Boolean)
+            .join(" · ") || undefined
+        }
+      >
         <span
           className="kiseki-gutter-num"
           {...(timing ? { elementtiming: "kiseki-first-row" } : {})}
         >
           {String(view.position).padStart(2, "0")}
-        </span>
-        {time && <span className="kiseki-gutter-time">{time}</span>}
-        <span className="kiseki-gutter-extra" title={model || undefined}>
-          {view.durationMs != null && (
-            <span data-outlier={outliers.duration.has(view.key) || undefined}>
-              {formatDuration(view.durationMs)}
-            </span>
-          )}
-          {totalTokens > 0 && (
-            <span data-outlier={outliers.tokens.has(view.key) || undefined}>
-              {formatTokens(totalTokens)}
-            </span>
-          )}
         </span>
       </div>
       <div
@@ -149,8 +157,15 @@ export const StepRow = memo(function StepRow({
               )}
             </div>
           ) : (
-            <div className="kiseki-user">{step.content.replace(/^"(.*)"$/s, "$1")}</div>
+            <div className="kiseki-user">
+              {step.attachments?.length ? <Attachments items={step.attachments} /> : null}
+              {step.content.replace(/^"(.*)"$/s, "$1")}
+            </div>
           )
+        ) : step.role === "user" && step.attachments?.length ? (
+          <div className="kiseki-user">
+            <Attachments items={step.attachments} />
+          </div>
         ) : null}
         {step.reasoning_content && (
           <ReasoningRenderer
@@ -163,9 +178,9 @@ export const StepRow = memo(function StepRow({
         {step.role === "agent" && step.content && (
           <MessageRenderer text={step.content} view={view} streaming={streaming} />
         )}
-        {view.calls.length > 0 && (
+        {shownCalls.length > 0 && (
           <div className="kiseki-calls">
-            {view.calls.map((paired) => (
+            {shownCalls.map((paired) => (
               <CallSlot key={paired.call.tool_call_id} view={view} paired={paired} />
             ))}
           </div>
@@ -182,19 +197,35 @@ export const StepRow = memo(function StepRow({
           <PatchBlock key={patch.patch_id} patch={patch} stepKey={view.key} />
         ))}
         {row.branch && (
-          <button
-            type="button"
-            className="kiseki-branch"
-            aria-expanded={row.open}
-            onClick={(event) => {
-              event.stopPropagation();
-              onSelect(view.key);
-              onToggleBranch(view.key);
-            }}
-          >
-            <Chevron />
-            <BranchLabel row={row} state={branchState} />
-          </button>
+          <div className="kiseki-runs">
+            {(runs.length ? runs : [[]]).map((members, i) => {
+              const key = runKey(view.key, i);
+              const task = replaceTasks ? taskCalls[i] : undefined;
+              return (
+                <SubagentBlock
+                  key={key}
+                  members={members}
+                  description={
+                    typeof task?.call.input?.description === "string"
+                      ? task.call.input.description
+                      : undefined
+                  }
+                  role={
+                    (typeof task?.call.input?.subagent_type === "string"
+                      ? task.call.input.subagent_type
+                      : undefined) ?? members[0]?.step.agent_role
+                  }
+                  reference={view.step.subagent_trajectory_ref}
+                  open={context.isUnfolded?.(key) ?? row.open}
+                  state={branchState}
+                  onToggle={() => {
+                    onSelect(view.key);
+                    onToggleBranch(key);
+                  }}
+                />
+              );
+            })}
+          </div>
         )}
         {streaming && <span className="kiseki-cursor" role="status" aria-label="running" />}
       </div>
@@ -202,36 +233,73 @@ export const StepRow = memo(function StepRow({
   );
 });
 
-function BranchLabel({ row, state }: { row: Row; state: BranchState }) {
-  const { view, trace } = row;
-  const ref = view.step.subagent_trajectory_ref;
-  const runs = branchRuns(trace, view);
-  const role = runs[0]?.[0]?.step.agent_role ?? "subagent";
-  let span: number | undefined;
-  const times = runs
-    .flat()
-    .map((s) => (s.step.timestamp ? Date.parse(s.step.timestamp) : Number.NaN))
-    .filter((t) => !Number.isNaN(t));
-  if (times.length) span = Math.max(...times) - Math.min(...times);
-  const size = row.branchSize ?? 0;
-  const label = runs.length > 1 ? `${runs.length} ${role} subagents` : `${role} subagent`;
+/**
+ * One subagent, folded into the turn that launched it: what it was asked and what it came back
+ * with. Opening it shows its own turns, indented, before the parent's next turn.
+ */
+function SubagentBlock({
+  members,
+  description,
+  role,
+  reference,
+  open,
+  state,
+  onToggle,
+}: {
+  members: ViewStep[];
+  description?: string;
+  role?: string;
+  reference?: string;
+  open: boolean;
+  state: BranchState;
+  onToggle: () => void;
+}) {
+  const prompt = members.find((m) => m.step.role === "user")?.step.content;
+  const task =
+    description ??
+    (prompt ? oneLine(prompt.replace(/^You are a subagent[^\n]*\n+/i, ""), 140) : reference) ??
+    "";
+  const answer = [...members].reverse().find((m) => m.step.role === "agent" && m.step.content)
+    ?.step.content;
+  const running = members.length > 0 && !answer;
   return (
-    <>
-      <span>{label}</span>
-      {ref && <span className="kiseki-mono kiseki-dim">{oneLine(ref, 32)}</span>}
-      {state === "loading" ? (
-        <span className="kiseki-shimmer">loading</span>
-      ) : state === "error" ? (
-        <span className="kiseki-dim">couldn't load</span>
-      ) : ref && state === "idle" && size === 0 ? (
-        <span className="kiseki-dim">{row.open ? "" : "open"}</span>
-      ) : (
-        <span className="kiseki-num kiseki-dim">
-          {size} {size === 1 ? "step" : "steps"}
-          {span != null && span > 0 ? ` · ${formatDuration(span)}` : ""}
-          {runs.length > 1 ? " · in parallel" : ""}
-        </span>
-      )}
-    </>
+    <button
+      type="button"
+      className="kiseki-subagent"
+      aria-expanded={open}
+      onClick={(event) => {
+        event.stopPropagation();
+        onToggle();
+      }}
+    >
+      <span className="kiseki-subagent-head">
+        <Chevron />
+        <span className="kiseki-subagent-role">{role ?? "subagent"}</span>
+        <span className="kiseki-subagent-task">{task}</span>
+      </span>
+      <span className="kiseki-subagent-result">
+        {state === "loading" ? (
+          <span className="kiseki-shimmer">loading</span>
+        ) : state === "error" ? (
+          "couldn't load"
+        ) : running ? (
+          <span className="kiseki-shimmer">working</span>
+        ) : answer ? (
+          oneLine(gist(answer), 160)
+        ) : (
+          "open"
+        )}
+      </span>
+    </button>
   );
+}
+
+/** The first line of an answer that reads as a sentence: no headings, rules, or table rows. */
+function gist(text: string): string {
+  const line =
+    text
+      .split("\n")
+      .map((l) => l.trim())
+      .find((l) => l && !/^(#{1,6}\s|\||[-*_]{3,}$|```)/.test(l)) ?? text;
+  return line.replace(/^[-*]\s+/, "").replace(/\*\*|`/g, "");
 }

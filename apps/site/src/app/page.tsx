@@ -13,7 +13,7 @@ import "@tetraslam/kiseki/styles.css";
 <Trace record={record} />`;
 
 async function load(d: (typeof list)[number]): Promise<Demo> {
-  const base = { id: d.id, label: d.label, note: d.note };
+  const base = { id: d.id, label: d.label };
   if (d.kind === "runs") {
     const records = await Promise.all(d.files.map(fixture));
     const latest = Math.max(

@@ -1,8 +1,10 @@
 import { testCounts as coreTestCounts, type PairedCall } from "@tetraslam/kiseki-core";
 import { type ReactNode, useState } from "react";
+import { Attachments } from "./attachments";
 import { DiffView } from "./blocks";
 import { useTrace } from "./context";
 import { formatDuration, oneLine, prettyJson } from "./format";
+import { Reveal } from "./motion";
 import { derivePatch, lineCounts } from "./patches";
 import { useDelayed } from "./state";
 import type { PatchContent, ToolRendererProps } from "./types";
@@ -190,7 +192,12 @@ function Frame({
           <span className="kiseki-result-text">{result}</span>
         </div>
       )}
-      {children?.(open)}
+      {props.observation?.attachments?.length ? (
+        <div className="kiseki-call-attachments">
+          <Attachments items={props.observation.attachments} />
+        </div>
+      ) : null}
+      {children && <Reveal open={open}>{(shown) => children(shown)}</Reveal>}
     </div>
   );
 }

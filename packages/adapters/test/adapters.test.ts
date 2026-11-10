@@ -308,3 +308,54 @@ describe("browser safety", () => {
     }
   });
 });
+
+describe("attachments", () => {
+  // A 3×2 PNG, base64.
+  const png =
+    "iVBORw0KGgoAAAANSUhEUgAAAAMAAAACCAYAAACddGYaAAAAEUlEQVR4nGP8z8DwnwEJMAEAHvMDAWw1R0kAAAAASUVORK5CYII=";
+
+  it("reads images from opencode prompts and tool results, with their size", () => {
+    const record = fromOpenCode({
+      info: { id: "ses_a", title: "t" },
+      messages: [
+        {
+          id: "m1",
+          type: "user",
+          time: { created: 1 },
+          text: "look",
+          files: [{ data: png, mime: "image/png", name: "/tmp/x/shot.png" }],
+        },
+        {
+          id: "m2",
+          type: "assistant",
+          time: { created: 2 },
+          content: [
+            {
+              type: "tool",
+              id: "t1",
+              name: "read",
+              state: {
+                status: "completed",
+                input: { path: "a.png" },
+                content: [
+                  { type: "text", text: "Image read successfully" },
+                  {
+                    type: "file",
+                    uri: `data:image/png;base64,${png}`,
+                    mime: "image/png",
+                    name: "/tmp/x/a.png",
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    } as unknown as OpenCodeSession);
+    const prompt = record.steps?.[0]?.attachments?.[0];
+    expect(prompt).toMatchObject({ type: "image", name: "shot.png", width: 3, height: 2 });
+    expect(prompt?.url?.startsWith("data:image/png;base64,")).toBe(true);
+    const result = record.steps?.[1]?.observations?.[0]?.attachments?.[0];
+    expect(result).toMatchObject({ type: "image", name: "a.png", width: 3, height: 2 });
+  });
+});

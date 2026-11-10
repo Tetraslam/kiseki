@@ -1,5 +1,5 @@
 import type { TraceView } from "@tetraslam/kiseki-core";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { formatCost, formatDuration, formatTokens, shortModel } from "./format";
 
 export interface TraceHeaderProps {
@@ -8,7 +8,7 @@ export interface TraceHeaderProps {
   children?: ReactNode;
 }
 
-/** One quiet line of stats. The trace below is the content; this only says what kind of run it was. */
+/** The outcome, and one details popover for everything else about the run. */
 export function TraceHeader({ view, children }: TraceHeaderProps) {
   const { record, totals } = view;
   const outcome = record.outcome;
@@ -38,28 +38,33 @@ export function TraceHeader({ view, children }: TraceHeaderProps) {
         {verdict}
         {outcome?.reward != null && <span className="kiseki-num"> · reward {outcome.reward}</span>}
       </span>
-      <span className="kiseki-stats kiseki-num">
-        {view.live ? (
+      {view.live && (
+        <span className="kiseki-stats kiseki-num">
           <LiveClock start={record.timestamp_start ?? record.steps?.[0]?.timestamp} />
-        ) : (
-          totals.durationMs != null && <span>{formatDuration(totals.durationMs)}</span>
-        )}
-        <span>{totals.steps.toLocaleString()} steps</span>
-        <span>
-          {totals.toolCalls.toLocaleString()} calls
-          {totals.errors > 0 && <span className="kiseki-failed"> · {totals.errors} failed</span>}
         </span>
-        {totals.inputTokens + totals.outputTokens > 0 && (
-          <span>
-            {formatTokens(totals.inputTokens)} → {formatTokens(totals.outputTokens)} tok
-          </span>
-        )}
-        {totals.costUsd != null && <span>{formatCost(totals.costUsd)}</span>}
-        <span className="kiseki-stats-agent">
-          {record.agent.name}
-          {record.agent.model && ` · ${shortModel(record.agent.model)}`}
+      )}
+      {totals.errors > 0 && (
+        <span className="kiseki-stats kiseki-failed kiseki-num">
+          {totals.errors} {totals.errors === 1 ? "call" : "calls"} failed
         </span>
-      </span>
+      )}
+      <Details
+        rows={[
+          ["agent", record.agent.name],
+          ["model", record.agent.model ? shortModel(record.agent.model) : undefined],
+          ["time", totals.durationMs != null ? formatDuration(totals.durationMs) : undefined],
+          ["turns", totals.steps.toLocaleString()],
+          ["tool calls", totals.toolCalls.toLocaleString()],
+          [
+            "tokens",
+            totals.inputTokens + totals.outputTokens > 0
+              ? `${formatTokens(totals.inputTokens)} in, ${formatTokens(totals.outputTokens)} out`
+              : undefined,
+          ],
+          ["cost", totals.costUsd != null ? formatCost(totals.costUsd) : undefined],
+          ["outcome", outcome?.description],
+        ]}
+      />
       {children}
     </header>
   );
@@ -85,4 +90,58 @@ function LiveClock({ start }: { start?: string }) {
 function clock(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
+
+/** Model, time, counts, tokens, and cost, out of the way until asked for. */
+function Details({ rows }: { rows: [string, string | undefined][] }) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLSpanElement>(null);
+  const id = useId();
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: PointerEvent | KeyboardEvent) => {
+      if (
+        event instanceof KeyboardEvent
+          ? event.key === "Escape"
+          : !root.current?.contains(event.target as Node)
+      )
+        setOpen(false);
+    };
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("keydown", close);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("keydown", close);
+    };
+  }, [open]);
+  const shown = rows.filter((row): row is [string, string] => !!row[1]);
+  return (
+    <span ref={root} className="kiseki-details">
+      <button
+        type="button"
+        className="kiseki-chip"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={() => setOpen((o) => !o)}
+      >
+        details
+      </button>
+      <span
+        id={id}
+        className="kiseki-details-panel"
+        data-open={open || undefined}
+        role="dialog"
+        aria-label="run details"
+      >
+        <dl>
+          {shown.map(([label, value]) => (
+            <span key={label}>
+              <dt>{label}</dt>
+              <dd className="kiseki-num">{value}</dd>
+            </span>
+          ))}
+        </dl>
+      </span>
+    </span>
+  );
 }

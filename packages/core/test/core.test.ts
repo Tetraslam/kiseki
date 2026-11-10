@@ -7,6 +7,7 @@ import {
   normalize,
   parseTraces,
   resolveGenerations,
+  runKey,
   searchSteps,
   sideBySide,
   type TraceRecord,
@@ -126,10 +127,22 @@ describe("tree", () => {
   it("folds branches by default and unfolds them on request", () => {
     const folded = visibleRows(view, { unfolded: new Set() });
     expect(folded.every((row) => row.depth === 0)).toBe(true);
-    const open = visibleRows(view, { unfolded: new Set([head?.key as string]) });
+    const open = visibleRows(view, { unfolded: new Set([runKey(head?.key as string, 0)]) });
     expect(open.length).toBe(folded.length + (head?.children.length ?? 0));
     const at = open.findIndex((row) => row.view === head);
     expect(open[at + 1]?.view.index).toBe(head?.children[0]);
+  });
+
+  it("keeps parallel subagents as separate runs that unfold on their own", () => {
+    const view = normalize(load("opencode-ledger-review.json"));
+    const head = view.steps.find((s) => s.children.length) as (typeof view.steps)[number];
+    const one = visibleRows(view, { unfolded: new Set([runKey(head.key, 1)]) });
+    const nested = one.filter((r) => r.run);
+    expect(nested.length).toBeGreaterThan(2);
+    expect(new Set(nested.map((r) => r.run))).toEqual(new Set([runKey(head.key, 1)]));
+    // The run's turns follow the turn that launched it, before the parent's next turn.
+    const at = one.findIndex((r) => r.view === head);
+    expect(one[at + 1]?.run).toBe(runKey(head.key, 1));
   });
 
   it("ignores a parent that comes later, so cycles cannot form", () => {
@@ -143,7 +156,7 @@ describe("tree", () => {
     const parent = normalize(load("subagent-parent.json"));
     const child = normalize(load("subagent-child.json"), { keyPrefix: "child/" });
     const loaded = new Map([["child", child]]);
-    const rows = visibleRows(parent, { unfolded: new Set(["1"]), loaded });
+    const rows = visibleRows(parent, { unfolded: new Set(["1~0"]), loaded });
     expect(rows.map((r) => r.view.key)).toEqual(["0", "1", "child/0", "child/1", "2"]);
     expect(rows[2]?.depth).toBe(1);
     expect(branchTree(parent, loaded)[0]?.size).toBe(2);

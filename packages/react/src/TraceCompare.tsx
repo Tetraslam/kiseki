@@ -2,9 +2,11 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   type AlignedPair,
   align,
+  branchRuns,
   firstDivergence,
   normalize,
   type Row,
+  runKey,
   sideBySide,
   type TraceRecord,
   type TraceView,
@@ -264,6 +266,6 @@ function Pair({
 }
 
 function allRows(view: TraceView): Row[] {
-  const heads = view.steps.filter((s) => s.children.length).map((s) => s.key);
-  return visibleRows(view, { unfolded: new Set(heads) });
+  const runs = view.steps.flatMap((s) => branchRuns(view, s).map((_, i) => runKey(s.key, i)));
+  return visibleRows(view, { unfolded: new Set(runs) });
 }

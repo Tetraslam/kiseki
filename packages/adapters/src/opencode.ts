@@ -1,7 +1,8 @@
-import type { Outcome, ToolCall, TraceRecord } from "@tetraslam/kiseki-core";
+import type { Attachment, Outcome, ToolCall, TraceRecord } from "@tetraslam/kiseki-core";
 import {
   asInput,
   assemble,
+  attachment,
   buildRecord,
   clean,
   type Draft,
@@ -104,13 +105,29 @@ function convertV2(message: Json, drafts: Draft[]) {
   const timestamp = iso(time.created ?? message.time_created);
   switch (message.type) {
     case "user": {
-      const files = Array.isArray(message.files) ? message.files : [];
-      const names = files.map((file) =>
-        isObject(file) ? (str(file.name) ?? str(file.filename)) : undefined,
-      );
-      const attached = names.filter(Boolean).map((name) => `[file: ${name}]`);
-      const content = [str(message.text), ...attached].filter(Boolean).join("\n\n");
-      if (content) drafts.push(draft(clean({ role: "user" as const, content, timestamp })));
+      const files = Array.isArray(message.files) ? message.files.filter(isObject) : [];
+      const attachments = files
+        .map((file) => {
+          const data = str(file.data);
+          const mime = str(file.mime);
+          const url =
+            str(file.url) ??
+            (data ? `data:${mime ?? "application/octet-stream"};base64,${data}` : undefined);
+          return attachment(url, mime, str(file.name) ?? str(file.filename));
+        })
+        .filter((a) => a != null);
+      const content = str(message.text);
+      if (content || attachments.length)
+        drafts.push(
+          draft(
+            clean({
+              role: "user" as const,
+              content,
+              timestamp,
+              attachments: attachments.length ? attachments : undefined,
+            }),
+          ),
+        );
       return;
     }
     case "system":
@@ -155,6 +172,7 @@ function convertV2(message: Json, drafts: Draft[]) {
         name: str(part.name) ?? "tool",
         state,
         output: textOf(state.content),
+        attachments: filesOf(state.content),
         duration: start != null && end != null && end >= start ? end - start : undefined,
       });
     }
@@ -173,7 +191,9 @@ function convertV1(info: Json, parts: unknown[], drafts: Draft[]) {
   if (info.role === "user") {
     const texts = parts.filter((part) => isObject(part) && part.type === "text" && !part.synthetic);
     const content = textOf(texts, "\n\n");
-    if (content) drafts.push(draft(clean({ role: "user" as const, content, timestamp })));
+    const attachments = filesOf(parts);
+    if (content || attachments)
+      drafts.push(draft(clean({ role: "user" as const, content, timestamp, attachments })));
     return;
   }
   if (info.role !== "assistant") return;
@@ -239,10 +259,27 @@ interface ToolPart {
   name: string;
   state: Json;
   output: string | undefined;
+  attachments?: Attachment[];
   duration?: number;
 }
 
-function addTool(target: Draft, { id, name, state, output, duration }: ToolPart) {
+/** Image and file parts in a tool's result content, such as an image the read tool returned. */
+function filesOf(content: unknown): Attachment[] | undefined {
+  if (!Array.isArray(content)) return undefined;
+  const out = content
+    .filter((part) => isObject(part) && part.type === "file")
+    .map((part) =>
+      attachment(
+        str(part.uri) ?? str(part.url),
+        str(part.mime),
+        str(part.name) ?? str(part.filename),
+      ),
+    )
+    .filter((a) => a != null);
+  return out.length ? out : undefined;
+}
+
+function addTool(target: Draft, { id, name, state, output, attachments, duration }: ToolPart) {
   const step = target.step;
   const call = clean<ToolCall>({
     tool_call_id: id,
@@ -252,7 +289,10 @@ function addTool(target: Draft, { id, name, state, output, duration }: ToolPart)
   });
   step.tool_calls = [...(step.tool_calls ?? []), call];
   if (state.status === "completed")
-    step.observations = [...(step.observations ?? []), observation(id, output)];
+    step.observations = [
+      ...(step.observations ?? []),
+      attachments ? { ...observation(id, output), attachments } : observation(id, output),
+    ];
   else if (state.status === "error") {
     step.observations = [
       ...(step.observations ?? []),

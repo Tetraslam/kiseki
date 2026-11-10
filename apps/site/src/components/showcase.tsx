@@ -11,11 +11,11 @@ import { researchRenderers } from "./research";
 import { useStreamed } from "./stream";
 
 export type Demo =
-  | { id: string; label: string; note: string; kind: "chat"; record: TraceRecord }
-  | { id: string; label: string; note: string; kind: "coding"; record: TraceRecord }
-  | { id: string; label: string; note: string; kind: "runs"; records: TraceRecord[]; now: number }
-  | { id: string; label: string; note: string; kind: "evals"; a: TraceRecord; b: TraceRecord }
-  | { id: string; label: string; note: string; kind: "custom"; record: TraceRecord };
+  | { id: string; label: string; kind: "chat"; record: TraceRecord }
+  | { id: string; label: string; kind: "coding"; record: TraceRecord }
+  | { id: string; label: string; kind: "runs"; records: TraceRecord[]; now: number }
+  | { id: string; label: string; kind: "evals"; a: TraceRecord; b: TraceRecord }
+  | { id: string; label: string; kind: "custom"; record: TraceRecord };
 
 /** The first screen: the dyed panel with the demo picker, and kiseki inside a host interface. */
 export function Showcase({
@@ -55,7 +55,6 @@ export function Showcase({
                 active={tab === d.id}
                 onClick={() => setTab(d.id)}
                 label={d.label}
-                note={d.note}
               />
             ))}
             {dropped && (
@@ -63,13 +62,11 @@ export function Showcase({
                 active={tab === "file"}
                 onClick={() => setTab("file")}
                 label={dropped.name}
-                note={dropped.format}
               />
             )}
           </nav>
-          <p className="mt-5 px-3 text-[12.5px] text-white/55">
-            drop a trace to view it, or <OpenFile onFile={onFile}>open one</OpenFile>. it stays in
-            your browser.
+          <p className="mt-3 px-3 text-[13px] text-white/60">
+            <OpenFile onFile={onFile}>open a trace</OpenFile>
           </p>
           <div className="mt-auto pt-8">{footer}</div>
         </aside>
@@ -105,24 +102,19 @@ function DemoButton({
   active,
   onClick,
   label,
-  note,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
-  note: string;
 }) {
   return (
     <button
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className="group grid gap-0.5 rounded-[8px] px-3 py-2 text-left transition-colors duration-[90ms] ease-track hover:bg-white/[0.07] aria-pressed:bg-white/[0.12]"
+      className="rounded-[8px] px-3 py-1.5 text-left transition-colors duration-[90ms] ease-track hover:bg-white/[0.07] aria-pressed:bg-white/[0.12]"
     >
       <span className="text-[14px] font-medium">{label}</span>
-      <span className="text-[12.5px] leading-snug text-white/55 group-aria-pressed:text-white/75">
-        {note}
-      </span>
     </button>
   );
 }
