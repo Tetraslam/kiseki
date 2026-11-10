@@ -278,9 +278,15 @@ function SubagentBlock({
 /** The first line of an answer that reads as a sentence: no headings, rules, or table rows. */
 function gist(text: string): string | undefined {
   // A finding reads as a sentence: eight words or more, at most one code span, no paths.
+  let fenced = false;
   for (const raw of text.split("\n")) {
     const line = raw.trim();
-    if (!line || /^(#{1,6}\s|\||[-*_]{3,}$|```)/.test(line)) continue;
+    if (line.startsWith("```")) {
+      fenced = !fenced;
+      continue;
+    }
+    if (fenced || !line || /^(#{1,6}\s|\||[-*_]{3,}$)/.test(line)) continue;
+    if (/[{};]|[!=]==/.test(line.replace(/`[^`]*`/g, ""))) continue;
     if ((line.match(/`[^`]+`/g) ?? []).length > 1 || /(^|\s)`?\/\S+\/\S+/.test(line)) continue;
     // Diagrams and arrows aren't prose.
     if (/[\u2500-\u257f\u2190-\u21ff\u25a0-\u25ff]|->|=>/.test(line)) continue;

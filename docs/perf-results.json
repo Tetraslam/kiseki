@@ -1,24 +1,27 @@
 {
   "firstRowsSamplesMs": [
-    74,
-    81,
-    69,
-    79,
-    77
+    85,
+    83,
+    97,
+    87,
+    92
   ],
-  "firstRowsMedianMs": 77,
+  "firstRowsMedianMs": 87,
   "steps": 10000,
-  "parseMs": 87.09999999776483,
-  "firstRowsMs": 86.70000000298023,
-  "firstRowsCommitMs": 49.5,
+  "parseMs": 106.29999999701977,
+  "firstRowsMs": 88,
+  "firstRowsCommitMs": 49.30000000074506,
   "longTasksAfterParse": [
-    72
+    75
   ],
   "domRows": 13,
   "diffsLoadedAtRest": true,
   "scrollSettleMovePx": 0,
   "scrollCls": 0,
-  "scrollLongTasks": [],
+  "scrollLongTasks": [
+    51,
+    56
+  ],
   "expandMovesRowsAbovePx": 0,
   "diffsLoadedAfterExpand": true,
   "cls": 0,
@@ -31,7 +34,7 @@
   "streamReaderMovePx": 0,
   "streamCls": 0,
   "streamLongTasks": [],
-  "followGapPx": 2,
+  "followGapPx": 1,
   "sitePageScrolledPx": 0,
   "siteAnchorDriftPx": 0,
   "siteNestedScroller": true,
@@ -43,5 +46,5 @@
     "following": true,
     "siteAnchored": true
   },
-  "measuredAt": "2026-11-10T01:13:19.785Z"
+  "measuredAt": "2026-11-10T01:15:47.879Z"
 }
