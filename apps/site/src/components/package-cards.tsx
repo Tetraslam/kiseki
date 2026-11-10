@@ -71,19 +71,21 @@ export function PackageCard(props: ToolRendererProps) {
   const fill = downloads ? Math.min(1, Math.log10(downloads) / 8) : 0;
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 rounded-[4px] bg-s1 px-2.5 py-2 ring-1 ring-line">
-      <span className="flex min-w-0 items-baseline gap-2">
-        <span className="truncate font-mono text-[12.5px] text-foreground">{details.name}</span>
+      <span className="col-span-2 flex min-w-0 flex-wrap items-baseline gap-x-2 sm:col-span-1">
+        <span className="font-mono text-[12.5px] text-foreground [overflow-wrap:anywhere] sm:truncate">
+          {details.name}
+        </span>
         <span className="font-mono text-[11px] text-ink-3">{details.latest}</span>
       </span>
       <span className="font-mono text-[12.5px] tabular-nums text-foreground">
         {compact.format(downloads)}
         <span className="ml-1 font-sans text-[11px] text-ink-3">/ week</span>
       </span>
-      <span className="text-[11.5px] text-ink-3">
+      <span className="hidden text-[11.5px] text-ink-3 sm:inline">
         {details.license ?? "no license"} · {details.dependencies} deps · published{" "}
         {age(details.published)} · since {details.created?.slice(0, 4)}
       </span>
-      <span className="h-1 w-28 overflow-hidden rounded-full bg-line">
+      <span className="hidden h-1 w-28 overflow-hidden rounded-full bg-line sm:block">
         <span
           className="block h-full rounded-full bg-accent-ink"
           style={{ width: `${fill * 100}%` }}

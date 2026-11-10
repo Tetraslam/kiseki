@@ -534,7 +534,18 @@
   background-repeat: repeat-x;
 }
 
-/* an open subagent: its turns share one bounded inset under the block that launched it */
+/* a subagent's block is a row of its own, tucked under the turn that launched it */
+.kiseki-step-subagent {
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 4px;
+}
+
+.kiseki-step-subagent > .kiseki-body {
+  max-width: var(--kiseki-measure);
+}
+
+/* an open subagent: its turns share one bounded inset under its block */
 .kiseki-step[data-in-run] {
   padding-top: 8px;
   padding-bottom: 4px;
@@ -1577,4 +1588,45 @@
   font-size: var(--kiseki-size);
   line-height: 1.5;
   color: var(--kiseki-ink);
+}
+
+/* narrow containers: a slimmer gutter, so prose keeps its width */
+.kiseki {
+  container: kiseki / inline-size;
+}
+
+@container kiseki (max-width: 560px) {
+  .kiseki-step {
+    padding: 10px 14px 6px 34px;
+  }
+
+  .kiseki-gutter {
+    width: 34px;
+    padding-right: 8px;
+  }
+
+  .kiseki-step[data-in-run]::before {
+    inset: 0 8px 0 calc(34px + (var(--kiseki-depth) - 1) * 12px);
+  }
+
+  .kiseki-step[data-in-run] > .kiseki-body {
+    padding-left: calc((var(--kiseki-depth) - 1) * 12px + 12px);
+    padding-right: 6px;
+  }
+}
+
+/* compare: the tint that marks where the runs differ, named once in the summary */
+.kiseki-delta-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kiseki-delta-key::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: color-mix(in srgb, transparent 55%, var(--kiseki-accent-wash));
+  box-shadow: inset 2px 0 0 color-mix(in srgb, transparent 40%, var(--kiseki-accent));
 }

@@ -39,8 +39,7 @@ export function testCounts(text: string): { passed: number; failed: number } | u
 
 /**
  * What a run did, in a line: its outcome, then signals read from the trace itself. Test runs
- * that went from failing to passing, tool errors, subagents, files edited, and runs that ended
- * without changing anything.
+ * that went from failing to passing, tool errors, subagents, and files edited.
  */
 export function summarizeRun(view: TraceView): RunSummary {
   const { record, totals } = view;
@@ -86,8 +85,6 @@ export function summarizeRun(view: TraceView): RunSummary {
       label: `${files.size} ${files.size === 1 ? "file" : "files"} edited`,
       tone: "neutral",
     });
-  else if (view.steps.some((s) => s.calls.length))
-    signals.push({ label: "no edits", tone: "neutral" });
   if (subagents)
     signals.push({
       label: `${subagents} ${subagents === 1 ? "subagent" : "subagents"}`,

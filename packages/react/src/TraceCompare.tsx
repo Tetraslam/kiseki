@@ -235,6 +235,7 @@ function Delta({
       <span>
         <b>{shared}</b> steps in common
       </span>
+      <span className="kiseki-delta-key">steps that differ</span>
       {divergence && (
         <button type="button" className="kiseki-chip" data-push="" onClick={onJump}>
           jump to where they split
@@ -269,5 +270,6 @@ function Pair({
 
 function allRows(view: TraceView): Row[] {
   const runs = view.steps.flatMap((s) => branchRuns(view, s).map((_, i) => runKey(s.key, i)));
-  return visibleRows(view, { unfolded: new Set(runs) });
+  // Subagent turns show inline; their blocks would only repeat the launching turn.
+  return visibleRows(view, { unfolded: new Set(runs) }).filter((row) => !row.head);
 }

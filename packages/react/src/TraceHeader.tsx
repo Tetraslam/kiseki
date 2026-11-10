@@ -57,7 +57,7 @@ export function TraceHeader({ view, label, children }: TraceHeaderProps) {
           ["agent", record.agent.name],
           ["model", record.agent.model ? shortModel(record.agent.model) : undefined],
           ["time", totals.durationMs != null ? formatDuration(totals.durationMs) : undefined],
-          ["turns", totals.steps.toLocaleString()],
+          ["steps", totals.steps.toLocaleString()],
           ["tool calls", totals.toolCalls.toLocaleString()],
           [
             "tokens",

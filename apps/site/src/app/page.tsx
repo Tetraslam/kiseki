@@ -44,7 +44,7 @@ export default async function Home() {
                 kiseki
               </span>
             </h1>
-            <p className="min-w-0 truncate text-[13px] text-white/75 lg:mt-5 lg:whitespace-normal lg:text-[16px] lg:font-medium lg:text-white">
+            <p className="hidden min-w-0 lg:mt-5 lg:block lg:whitespace-normal lg:text-[16px] lg:font-medium lg:text-white">
               a react component for agent traces.
             </p>
             <div className="mt-4 hidden lg:block">

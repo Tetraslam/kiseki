@@ -304,13 +304,9 @@ export function ShellCall(props: ToolRendererProps) {
       ) : (
         `${tests.passed} passed`
       )
-    ) : code != null ? (
+    ) : code != null && code !== 0 ? (
       `exit ${code}`
-    ) : output ? (
-      "ran"
-    ) : (
-      "no output"
-    );
+    ) : undefined;
   return (
     <Frame
       props={props}
@@ -343,21 +339,17 @@ export function ReadCall(props: ToolRendererProps) {
       <Pending props={props} label="reading" />
     ) : props.observation?.error ? (
       "couldn't read"
-    ) : entries ? (
-      `${Number(entries[2]) - Number(entries[1]) + 1} entries`
-    ) : range ? (
-      range[1] === range[2] ? (
-        `line ${range[1]}`
-      ) : (
-        `lines ${range[1]}–${range[2]}`
-      )
-    ) : typeof offset === "number" ? (
-      `from line ${offset}${typeof limit === "number" ? `, ${limit} lines` : ""}`
-    ) : (
-      "done"
-    );
+    ) : undefined;
+  // Line ranges and entry counts are routine; they stay in the title for whoever wants them.
+  const detail = entries
+    ? `${Number(entries[2]) - Number(entries[1]) + 1} entries`
+    : range
+      ? `lines ${range[1]}–${range[2]}`
+      : typeof offset === "number"
+        ? `from line ${offset}${typeof limit === "number" ? `, ${limit} lines` : ""}`
+        : undefined;
   return (
-    <Frame props={props} result={result} target={relative(path)}>
+    <Frame props={props} result={result} target={<span title={detail}>{relative(path)}</span>}>
       {(open) =>
         open ? (
           <div className="kiseki-call-body">
@@ -621,11 +613,9 @@ export function FetchCall(props: ToolRendererProps) {
       <Pending props={props} label="fetching" />
     ) : props.observation?.error ? (
       "failed"
-    ) : status ? (
+    ) : status && !status[1]?.startsWith("2") ? (
       `HTTP ${status[1]}`
-    ) : (
-      `${lines(output).length} lines`
-    );
+    ) : undefined;
   return (
     <Frame props={props} result={result} target={url}>
       {(open) =>
@@ -654,7 +644,7 @@ export function GenericCall(props: ToolRendererProps) {
     props.status === "pending" || props.status === "missing" ? (
       <Pending props={props} label="running" />
     ) : (
-      (summary ?? "done")
+      summary
     );
   const showLoading = useDelayed(props.payloadState === "loading");
   return (

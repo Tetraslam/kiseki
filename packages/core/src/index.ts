@@ -36,6 +36,7 @@ export {
   branchTree,
   type Row,
   type RowOptions,
+  rowKey,
   runKey,
   runOf,
   visibleRows,

@@ -1,4 +1,4 @@
-import { branchRuns, type Row, runKey, type ViewStep } from "@tetraslam/kiseki-core";
+import { branchRuns, type Row, type ViewStep } from "@tetraslam/kiseki-core";
 import { memo } from "react";
 import { Attachments } from "./attachments";
 import { CallSlot, Chevron, Message, PatchBlock, Reasoning } from "./blocks";
@@ -35,17 +35,26 @@ export const StepRow = memo(function StepRow({
   onToggleBranch,
 }: StepRowProps) {
   const context = useTrace();
+  if (row.head) {
+    return (
+      <SubagentRow
+        row={row}
+        selected={selected}
+        state={branchState}
+        onSelect={onSelect}
+        onToggle={onToggleBranch}
+      />
+    );
+  }
   const { view, trace } = row;
   const { step } = view;
   const { renderers } = context;
   const model = step.model && step.model !== context.traceModel ? shortModel(step.model) : "";
   const totalTokens = (view.tokens.input_tokens ?? 0) + (view.tokens.output_tokens ?? 0);
   const callIds = new Set(view.calls.map((c) => c.call.tool_call_id));
-  // Subagents this turn launched. Each is one block, in place of the call that started it.
-  const runs = row.branch ? branchRuns(trace, view) : [];
-  const taskCalls = view.calls.filter((c) => toolKind(c.call.tool_name, c.call.input) === "task");
-  const replaceTasks = runs.length > 0 && taskCalls.length === runs.length;
-  const shownCalls = replaceTasks ? view.calls.filter((c) => !taskCalls.includes(c)) : view.calls;
+  // Subagents this turn launched are rows of their own, right after it, in place of their calls.
+  const { replaced } = subagentCalls(row);
+  const shownCalls = view.calls.filter((c) => !replaced.includes(c));
   const loosePatches = view.patches.filter((p) => !p.tool_call_id || !callIds.has(p.tool_call_id));
   const latest = trace.steps.at(-1) === view;
   const streaming = trace.live && latest;
@@ -199,37 +208,6 @@ export const StepRow = memo(function StepRow({
         {loosePatches.map((patch) => (
           <PatchBlock key={patch.patch_id} patch={patch} stepKey={view.key} />
         ))}
-        {row.branch && (
-          <div className="kiseki-runs">
-            {(runs.length ? runs : [[]]).map((members, i) => {
-              const key = runKey(view.key, i);
-              const task = replaceTasks ? taskCalls[i] : undefined;
-              return (
-                <SubagentBlock
-                  key={key}
-                  members={members}
-                  description={
-                    typeof task?.call.input?.description === "string"
-                      ? task.call.input.description
-                      : undefined
-                  }
-                  role={
-                    (typeof task?.call.input?.subagent_type === "string"
-                      ? task.call.input.subagent_type
-                      : undefined) ?? members[0]?.step.agent_role
-                  }
-                  reference={view.step.subagent_trajectory_ref}
-                  open={context.isUnfolded?.(key) ?? row.open}
-                  state={branchState}
-                  onToggle={() => {
-                    onSelect(view.key);
-                    onToggleBranch(key);
-                  }}
-                />
-              );
-            })}
-          </div>
-        )}
         {streaming && <span className="kiseki-cursor" role="status" aria-label="running" />}
       </div>
     </div>
@@ -299,10 +277,69 @@ function SubagentBlock({
 
 /** The first line of an answer that reads as a sentence: no headings, rules, or table rows. */
 function gist(text: string): string {
-  const line =
-    text
-      .split("\n")
-      .map((l) => l.trim())
-      .find((l) => l && !/^(#{1,6}\s|\||[-*_]{3,}$|```)/.test(l)) ?? text;
-  return line.replace(/^[-*]\s+/, "").replace(/\*\*|`/g, "");
+  const lines = text
+    .split("\n")
+    .map((l) =>
+      l
+        .trim()
+        .replace(/^[-*]\s+|^\d+\.\s+/, "")
+        .replace(/\*\*|`/g, ""),
+    )
+    .filter((l) => l && !/^(#{1,6}\s|\||[-*_]{3,}$|```)/.test(l));
+  // Prefer a sentence over a path or a table cell.
+  const sentence = lines.find((l) => l.split(/\s+/).length >= 6 && !/(^|\s)\/\S+\/\S+/.test(l));
+  return sentence ?? lines[0] ?? text;
+}
+
+/** The calls that launched this turn's subagents, when they match its runs one to one. */
+function subagentCalls(row: Row) {
+  const runs = row.branch || row.head ? branchRuns(row.trace, row.view) : [];
+  const tasks = row.view.calls.filter((c) => toolKind(c.call.tool_name, c.call.input) === "task");
+  return { tasks, replaced: runs.length > 0 && tasks.length === runs.length ? tasks : [] };
+}
+
+/** A subagent's own row: its block, sitting right above its turns when open. */
+function SubagentRow({
+  row,
+  selected,
+  state,
+  onSelect,
+  onToggle,
+}: {
+  row: Row;
+  selected: boolean;
+  state: BranchState;
+  onSelect: (key: string) => void;
+  onToggle: (key: string) => void;
+}) {
+  const head = row.head as NonNullable<Row["head"]>;
+  const { replaced } = subagentCalls(row);
+  const task = replaced[head.index];
+  const input = task?.call.input;
+  return (
+    <div
+      className="kiseki-step kiseki-step-subagent"
+      data-selected={selected || undefined}
+      data-in-run={row.run ? "" : undefined}
+      style={row.depth ? ({ "--kiseki-depth": row.depth } as React.CSSProperties) : undefined}
+    >
+      <div className="kiseki-body">
+        <SubagentBlock
+          members={head.members}
+          description={typeof input?.description === "string" ? input.description : undefined}
+          role={
+            (typeof input?.subagent_type === "string" ? input.subagent_type : undefined) ??
+            head.members[0]?.step.agent_role
+          }
+          reference={row.view.step.subagent_trajectory_ref}
+          open={row.open}
+          state={state}
+          onToggle={() => {
+            onSelect(head.run);
+            onToggle(head.run);
+          }}
+        />
+      </div>
+    </div>
+  );
 }

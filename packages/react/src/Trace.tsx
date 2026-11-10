@@ -5,6 +5,7 @@ import {
   normalize,
   overviewLaneCount,
   type Row,
+  rowKey,
   runKey,
   type Step,
   searchSteps,
@@ -247,7 +248,7 @@ export function Trace(props: TraceProps) {
   useLayoutEffect(() => {
     const key = pendingScroll.current;
     if (!key) return;
-    const index = rows.findIndex((row) => row.view.key === key);
+    const index = rows.findIndex((row) => rowKey(row) === key);
     if (index >= 0) {
       pendingScroll.current = null;
       timeline.current?.scrollToIndex(index);
@@ -462,11 +463,15 @@ export function Trace(props: TraceProps) {
       if (event.metaKey || event.ctrlKey || event.altKey || event.defaultPrevented) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
-      const index = selected ? rows.findIndex((r) => r.view.key === selected) : -1;
+      const index = selected ? rows.findIndex((r) => rowKey(r) === selected) : -1;
       const row = index >= 0 ? rows[index] : undefined;
       const select = (i: number) => {
-        const next = rows[Math.max(0, Math.min(rows.length - 1, i))];
-        if (next) reveal(next.view.key);
+        const at = Math.max(0, Math.min(rows.length - 1, i));
+        const next = rows[at];
+        if (!next) return;
+        if (!next.head) return reveal(next.view.key);
+        setSelected(rowKey(next));
+        timeline.current?.scrollToIndex(at);
       };
       switch (event.key) {
         case "j":
@@ -477,6 +482,10 @@ export function Trace(props: TraceProps) {
           break;
         case "Enter": {
           if (!row) return;
+          if (row.head) {
+            toggleBranch(row.head.run);
+            break;
+          }
           const v = row.view;
           const keys = [
             ...v.calls.map((c) => callKey(v.key, c.call.tool_call_id)),
@@ -491,7 +500,9 @@ export function Trace(props: TraceProps) {
         }
         case "[": {
           if (!row) return;
-          if (row.branch && row.open) {
+          if (row.head?.run && unfolded.has(row.head.run)) {
+            toggleBranch(row.head.run);
+          } else if (row.branch && row.open) {
             const open = runsOf(row).filter((k) => unfolded.has(k));
             timeline.current?.anchor(row.view.key);
             setUnfolded((prev) => toggleIn(prev, open, false));
@@ -500,14 +511,18 @@ export function Trace(props: TraceProps) {
             const above = located ? ancestors(located) : [];
             const run = above.at(-1);
             if (!run) return;
-            const head = headOf(run);
+            // Fold the run and land on its block.
             setUnfolded((prev) => toggleIn(prev, [run], false));
-            setSelected(head);
-            pendingScroll.current = head;
+            setSelected(run);
+            pendingScroll.current = run;
           }
           break;
         }
         case "]":
+          if (row?.head) {
+            if (!row.open) toggleBranch(row.head.run);
+            break;
+          }
           if (!row?.branch || row.open) return;
           timeline.current?.anchor(row.view.key);
           setUnfolded((prev) => toggleIn(prev, runsOf(row), true));

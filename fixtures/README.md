@@ -8,7 +8,7 @@
 | `opencode-ledger-json-flag.json` | real: claude-haiku-4-5 in OpenCode fixing seven failing tests in a toy ledger repo, then adding a `--json` flag with a test. The site's coding session. |
 | `opencode-ledger-review.json` | real: claude-sonnet-5-5 launching three explore subagents in parallel to review the same repo. |
 | `opencode-ledger-sonnet.json`, `opencode-ledger-haiku.json` | real: the same "make the tests pass" prompt run by sonnet 5.5 and haiku 4.5, for compare. |
-| `ai-sdk-package-scout.json` | real: an AI SDK 7 agent (claude-sonnet-5-5 through the AI Gateway) choosing a React virtualizer from live npm registry data, recorded with `createTraceRecorder`. `scripts/record-package-scout.mjs` reproduces it. |
+| `ai-sdk-package-scout.json` | real: an AI SDK 7 agent (claude-sonnet-5-5 through the AI Gateway) choosing a React virtualizer from live npm registry data, recorded with `createTraceRecorder`. `scripts/record-package-scout.mjs` reproduces it. `metadata.title` was added by hand, as a chat app would name the conversation. |
 | `opencode-tally.json` | real: OpenCode (claude-sonnet-5-5) fixing `median()` in a toy repo, with an explore subagent. |
 | `parc-search.json` | real: a parc search trace, exported the way parc's admin page exports OpenTraces. Payloads were never stored, only summaries. |
 | `errors.json` | failed calls, a call with no result, and a result with no call. |

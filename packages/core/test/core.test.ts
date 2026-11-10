@@ -7,6 +7,7 @@ import {
   normalize,
   parseTraces,
   resolveGenerations,
+  rowKey,
   runKey,
   searchSteps,
   sideBySide,
@@ -129,8 +130,10 @@ describe("tree", () => {
     expect(folded.every((row) => row.depth === 0)).toBe(true);
     const open = visibleRows(view, { unfolded: new Set([runKey(head?.key as string, 0)]) });
     expect(open.length).toBe(folded.length + (head?.children.length ?? 0));
-    const at = open.findIndex((row) => row.view === head);
-    expect(open[at + 1]?.view.index).toBe(head?.children[0]);
+    // The launching turn, then the subagent's block, then its turns.
+    const at = open.findIndex((row) => row.view === head && !row.head);
+    expect(open[at + 1]?.head?.run).toBe(runKey(head?.key as string, 0));
+    expect(open[at + 2]?.view.index).toBe(head?.children[0]);
   });
 
   it("keeps parallel subagents as separate runs that unfold on their own", () => {
@@ -141,8 +144,11 @@ describe("tree", () => {
     expect(nested.length).toBeGreaterThan(2);
     expect(new Set(nested.map((r) => r.run))).toEqual(new Set([runKey(head.key, 1)]));
     // The run's turns follow the turn that launched it, before the parent's next turn.
-    const at = one.findIndex((r) => r.view === head);
-    expect(one[at + 1]?.run).toBe(runKey(head.key, 1));
+    // Each subagent's block comes right before its own turns, so ownership reads in order.
+    const block = one.findIndex((r) => r.head?.run === runKey(head.key, 1));
+    expect(one[block - 1]?.head?.run).toBe(runKey(head.key, 0));
+    expect(one[block + 1]?.run).toBe(runKey(head.key, 1));
+    expect(one.at(-1)?.run).toBeUndefined();
   });
 
   it("ignores a parent that comes later, so cycles cannot form", () => {
@@ -157,8 +163,8 @@ describe("tree", () => {
     const child = normalize(load("subagent-child.json"), { keyPrefix: "child/" });
     const loaded = new Map([["child", child]]);
     const rows = visibleRows(parent, { unfolded: new Set(["1~0"]), loaded });
-    expect(rows.map((r) => r.view.key)).toEqual(["0", "1", "child/0", "child/1", "2"]);
-    expect(rows[2]?.depth).toBe(1);
+    expect(rows.map(rowKey)).toEqual(["0", "1", "1~0", "child/0", "child/1", "2"]);
+    expect(rows[3]?.depth).toBe(1);
     expect(branchTree(parent, loaded)[0]?.size).toBe(2);
   });
 });

@@ -107,6 +107,7 @@ function Mark({ domain, size = 18 }: { domain: string; size?: number }) {
 function SearchResults(props: ToolRendererProps) {
   const results = parseResults(props.payload ?? props.observation?.content ?? "");
   const query = String(props.call.input?.query ?? "");
+  const [all, setAll] = useState(false);
   if (props.status === "pending") return <props.Default {...props} />;
   if (!results.length) return <props.Default {...props} />;
   const read = new Set(
@@ -122,7 +123,7 @@ function SearchResults(props: ToolRendererProps) {
         <span className="ml-auto font-mono text-[11px] text-ink-3">{results.length} results</span>
       </div>
       <ol className="grid gap-px overflow-hidden rounded-[8px] ring-1 ring-line">
-        {results.slice(0, 3).map((hit, i) => (
+        {results.slice(0, all ? results.length : 3).map((hit, i) => (
           <li
             key={hit.url}
             className="grid grid-cols-[18px_minmax(0,1fr)] gap-x-2.5 bg-s1 px-3 py-2"
@@ -142,13 +143,25 @@ function SearchResults(props: ToolRendererProps) {
                   <span className="flex-none text-[10.5px] text-[var(--kiseki-add)]">read</span>
                 )}
               </span>
-              <span className="block truncate font-mono text-[10.5px] text-ink-3">
+              <span className="block truncate font-mono text-[11.5px] text-ink-2">
                 {i + 1}. {hit.domain}
               </span>
             </span>
           </li>
         ))}
       </ol>
+      {results.length > 3 && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            setAll((a) => !a);
+          }}
+          className="w-fit rounded-[6px] px-1.5 py-0.5 text-[12px] text-ink-2 transition-colors duration-[90ms] hover:bg-s2"
+        >
+          {all ? "show fewer" : `show ${results.length - 3} more`}
+        </button>
+      )}
     </div>
   );
 }

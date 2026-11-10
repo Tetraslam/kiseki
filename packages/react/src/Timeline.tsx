@@ -4,7 +4,7 @@ import {
   type VirtualItem,
   type Virtualizer,
 } from "@tanstack/react-virtual";
-import type { Row } from "@tetraslam/kiseki-core";
+import { type Row, rowKey } from "@tetraslam/kiseki-core";
 import {
   type ReactNode,
   type Ref,
@@ -47,6 +47,7 @@ export interface TimelineProps {
 
 /** A rough height before a row is measured. Close guesses keep the scrollbar from jumping. */
 function estimate(row: Row): number {
+  if (row.head) return 58;
   const { step } = row.view;
   let height = 40;
   const lines = (text: string | undefined, cap: number) =>
@@ -55,7 +56,6 @@ function estimate(row: Row): number {
   height += Math.min(lines(step.reasoning_content, 6), 6) * 23;
   if (step.role === "user") height += 22;
   height += row.view.calls.length * 46;
-  if (row.branch) height += 32;
   return height;
 }
 
@@ -92,7 +92,7 @@ function ContainerTimeline(props: TimelineProps) {
     count: rows.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: (index) => estimate(rows[index] as Row),
-    getItemKey: (index) => (rows[index] as Row).view.key,
+    getItemKey: (index) => rowKey(rows[index] as Row),
     overscan: 3,
   });
   const scrollBy = useCallback((delta: number) => {
@@ -142,7 +142,7 @@ function PageTimeline(props: TimelineProps) {
   const virtualizer = useWindowVirtualizer({
     count: rows.length,
     estimateSize: (index) => estimate(rows[index] as Row),
-    getItemKey: (index) => (rows[index] as Row).view.key,
+    getItemKey: (index) => rowKey(rows[index] as Row),
     overscan: 3,
     scrollMargin: margin,
   });
@@ -293,9 +293,9 @@ function Rows({
 
   // Rows that arrive while live animate in once. Rows present at mount never do.
   const seen = useRef<Set<string> | null>(null);
-  if (seen.current === null) seen.current = new Set(rows.map((row) => row.view.key));
+  if (seen.current === null) seen.current = new Set(rows.map(rowKey));
   const fresh = new Set<string>();
-  if (live) for (const row of rows) if (!seen.current.has(row.view.key)) fresh.add(row.view.key);
+  if (live) for (const row of rows) if (!seen.current.has(rowKey(row))) fresh.add(rowKey(row));
   useEffect(() => {
     for (const key of fresh) seen.current?.add(key);
   });
@@ -351,9 +351,9 @@ function Rows({
       <StepRow
         row={row}
         turn={turn}
-        selected={selected === row.view.key}
-        match={matches.has(row.view.key)}
-        branchState={branchStates.get(row.view.key) ?? "idle"}
+        selected={selected === rowKey(row)}
+        match={!row.head && matches.has(row.view.key)}
+        branchState={(row.head && branchStates.get(row.view.key)) || "idle"}
         onSelect={onSelect}
         onToggleBranch={onToggleBranch}
         timing={index === 0}
@@ -377,7 +377,7 @@ function Rows({
       {virtual
         ? items.map((item) => {
             const row = rows[item.index] as Row;
-            const key = row.view.key;
+            const key = rowKey(row);
             return (
               <div
                 key={key}
@@ -393,7 +393,7 @@ function Rows({
             );
           })
         : openingRows(rows).map((row, index) => (
-            <div key={row.view.key} data-key={row.view.key} className="kiseki-row" data-flow="">
+            <div key={rowKey(row)} data-key={rowKey(row)} className="kiseki-row" data-flow="">
               {renderRow(row, index)}
             </div>
           ))}

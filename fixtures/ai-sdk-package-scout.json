@@ -166,5 +166,8 @@
   "outcome": {
     "signal_source": "orchestrator",
     "description": "answered: recommends react-virtuoso"
+  },
+  "metadata": {
+    "title": "virtualizing a chat log"
   }
 }

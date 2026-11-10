@@ -15,7 +15,17 @@ export interface Row {
   open: boolean;
   /** The subagent run this step belongs to, when it's inside one. */
   run?: string;
+  /**
+   * Set on the row that stands for one subagent: its block, right before its own turns. `view`
+   * is the turn that launched it. Such rows have their own `key`.
+   */
+  head?: { run: string; index: number; members: ViewStep[] };
+  /** A key for rows that aren't a step of their own (subagent blocks); otherwise `view.key`. */
+  key?: string;
 }
+
+/** The row's identity in a list: its own key, or its step's. */
+export const rowKey = (row: Row) => row.key ?? row.view.key;
 
 export interface RowOptions {
   /**
@@ -60,8 +70,22 @@ export function visibleRows(view: TraceView, options: RowOptions): Row[] {
         open,
         run,
       });
+      // Each subagent is its own row, its turns right under it when open.
+      const depth = baseDepth + step.depth;
+      const headRow = (key: string, i: number, members: ViewStep[]) =>
+        rows.push({
+          view: step,
+          depth,
+          trace,
+          branch: false,
+          open: options.unfolded.has(key),
+          run,
+          head: { run: key, index: i, members },
+          key,
+        });
       runs.forEach((members, i) => {
         const key = runKey(step.key, i);
+        headRow(key, i, members);
         if (options.unfolded.has(key))
           walk(
             trace,
@@ -70,8 +94,10 @@ export function visibleRows(view: TraceView, options: RowOptions): Row[] {
             key,
           );
       });
-      if (nested && options.unfolded.has(runKey(step.key, 0))) {
-        walk(nested, nested.roots, baseDepth + step.depth + 1, runKey(step.key, 0));
+      if (ref && !runs.length) {
+        const key = runKey(step.key, 0);
+        headRow(key, 0, nested?.steps ?? []);
+        if (nested && options.unfolded.has(key)) walk(nested, nested.roots, depth + 1, key);
       }
     }
   };
