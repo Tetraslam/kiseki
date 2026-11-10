@@ -54,18 +54,20 @@
   --diffs-light-bg: var(--kiseki-raised);
   --diffs-dark-bg: var(--kiseki-raised);
   /* Quiet diffs: a whisper of green and red, as diffs.com does it, so a long edit doesn't shout. */
-  --diffs-bg-addition-override: color-mix(in srgb, var(--kiseki-raised) 55%, var(--kiseki-add));
-  --diffs-bg-deletion-override: color-mix(in srgb, var(--kiseki-raised) 55%, var(--kiseki-del));
+  --diffs-bg-addition-override: color-mix(in srgb, var(--kiseki-raised) 72%, var(--kiseki-add));
+  --diffs-bg-deletion-override: color-mix(in srgb, var(--kiseki-raised) 72%, var(--kiseki-del));
   --diffs-bg-addition-number-override: color-mix(
     in srgb,
-    var(--kiseki-raised) 55%,
+    var(--kiseki-raised) 72%,
     var(--kiseki-add)
   );
   --diffs-bg-deletion-number-override: color-mix(
     in srgb,
-    var(--kiseki-raised) 55%,
+    var(--kiseki-raised) 72%,
     var(--kiseki-del)
   );
+  --diffs-bg-addition-emphasis-override: color-mix(in srgb, transparent 85%, var(--kiseki-add));
+  --diffs-bg-deletion-emphasis-override: color-mix(in srgb, transparent 85%, var(--kiseki-del));
 }
 
 :where(.dark, [data-theme="dark"]) :where(.kiseki:not([data-theme="light"])),
