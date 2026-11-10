@@ -10,7 +10,7 @@ export function CopyCommand({ command, tone }: { command: string; tone?: "dye" }
     <div
       className={
         tone === "dye"
-          ? "inline-flex h-9 items-center gap-1 rounded-[8px] bg-black/25 pl-3.5 pr-1 font-mono text-[12.5px] text-white ring-1 ring-white/15"
+          ? "inline-flex h-9 items-center gap-1 rounded-[8px] bg-black/25 pl-3 pr-1 font-mono text-[12px] whitespace-nowrap text-white ring-1 ring-white/15"
           : "inline-flex h-9 items-center gap-1 rounded-[6px] bg-s1 pl-3.5 pr-1 font-mono text-[13px] ring-1 ring-line"
       }
     >

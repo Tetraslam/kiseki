@@ -1,10 +1,9 @@
 import type { Attachment } from "@tetraslam/kiseki-core";
-import { useState } from "react";
 
 /**
  * Images and files attached to a turn or returned by a tool. Images keep their aspect ratio
- * reserved before they load, so nothing below moves when they arrive. Clicking an image toggles
- * it between a thumbnail and its full width.
+ * reserved before they load, so nothing below moves when they arrive. They show at their own
+ * size, up to the width they have.
  */
 export function Attachments({ items }: { items: Attachment[] }) {
   return (
@@ -26,25 +25,12 @@ export function Attachments({ items }: { items: Attachment[] }) {
 }
 
 function ImageAttachment({ item }: { item: Attachment }) {
-  const [large, setLarge] = useState(false);
   const ratio = item.width && item.height ? `${item.width} / ${item.height}` : undefined;
   return (
-    <button
-      type="button"
+    <span
       className="kiseki-image"
-      data-large={large || undefined}
-      aria-expanded={large}
       title={item.name}
-      style={{
-        aspectRatio: ratio,
-        width: item.width
-          ? `min(100%, ${large ? item.width : Math.min(item.width, 280)}px)`
-          : undefined,
-      }}
-      onClick={(event) => {
-        event.stopPropagation();
-        setLarge((l) => !l);
-      }}
+      style={{ aspectRatio: ratio, width: item.width ? `min(100%, ${item.width}px)` : undefined }}
     >
       <img
         src={item.url}
@@ -54,7 +40,7 @@ function ImageAttachment({ item }: { item: Attachment }) {
         loading="lazy"
         decoding="async"
       />
-    </button>
+    </span>
   );
 }
 

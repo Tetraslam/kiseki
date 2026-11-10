@@ -4,12 +4,14 @@ import { formatCost, formatDuration, formatTokens, shortModel } from "./format";
 
 export interface TraceHeaderProps {
   view: TraceView;
+  /** A name shown before the outcome, such as the model when two runs sit side by side. */
+  label?: ReactNode;
   /** Controls on the right of the line, such as the search toggle. */
   children?: ReactNode;
 }
 
 /** The outcome, and one details popover for everything else about the run. */
-export function TraceHeader({ view, children }: TraceHeaderProps) {
+export function TraceHeader({ view, label, children }: TraceHeaderProps) {
   const { record, totals } = view;
   const outcome = record.outcome;
   const state = view.live
@@ -33,6 +35,7 @@ export function TraceHeader({ view, children }: TraceHeaderProps) {
           : "finished";
   return (
     <header className="kiseki-header">
+      {label != null && <span className="kiseki-header-label">{label}</span>}
       <span className="kiseki-outcome" data-state={state} title={outcome?.description}>
         <span className="kiseki-outcome-mark" />
         {verdict}
@@ -49,6 +52,7 @@ export function TraceHeader({ view, children }: TraceHeaderProps) {
         </span>
       )}
       <Details
+        lead={outcome?.description}
         rows={[
           ["agent", record.agent.name],
           ["model", record.agent.model ? shortModel(record.agent.model) : undefined],
@@ -62,7 +66,6 @@ export function TraceHeader({ view, children }: TraceHeaderProps) {
               : undefined,
           ],
           ["cost", totals.costUsd != null ? formatCost(totals.costUsd) : undefined],
-          ["outcome", outcome?.description],
         ]}
       />
       {children}
@@ -93,7 +96,7 @@ function clock(ms: number): string {
 }
 
 /** Model, time, counts, tokens, and cost, out of the way until asked for. */
-function Details({ rows }: { rows: [string, string | undefined][] }) {
+function Details({ lead, rows }: { lead?: string; rows: [string, string | undefined][] }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLSpanElement>(null);
   const id = useId();
@@ -133,6 +136,7 @@ function Details({ rows }: { rows: [string, string | undefined][] }) {
         role="dialog"
         aria-label="run details"
       >
+        {lead && <p className="kiseki-details-lead">{lead}</p>}
         <dl>
           {shown.map(([label, value]) => (
             <span key={label}>

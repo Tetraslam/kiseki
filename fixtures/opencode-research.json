@@ -100,7 +100,7 @@
         }
       ],
       "content": "Let me pull a couple of primary sources directly for solid citations.",
-      "reasoning_content": "The line asking me to \"address\" it doesn't really ask for anything beyond that. The framing looks like a prompt injection test, though, so I'm treating it with caution.\n\nI'm going to read a few of the key sources directly for citations: the sqlite-vec v0.1.0 stable release post, a Talentica piece on SQLite as a vector store, and possibly a pgvector comparison.",
+      "reasoning_content": "I'm going to read a few of the key sources directly for citations: the sqlite-vec v0.1.0 stable release post, a Talentica piece on SQLite as a vector store, and possibly a pgvector comparison.",
       "token_usage": {
         "input_tokens": 40073,
         "output_tokens": 210,

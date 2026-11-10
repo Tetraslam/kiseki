@@ -75,12 +75,11 @@ export function TraceList({
             <span className="kiseki-run-when kiseki-num">{ago(run.startedAt, now)}</span>
           </span>
           <span className="kiseki-run-signals" data-outcome={run.outcome}>
-            {[
-              run.outcome === "failure" ? "failed" : run.outcome === "live" ? "running" : "",
-              ...run.signals.map((s) => s.label),
-            ]
-              .filter(Boolean)
-              .join(" · ")}
+            {run.outcome === "failure"
+              ? ["failed", run.signals[0]?.label].filter(Boolean).join(" · ")
+              : run.outcome === "live"
+                ? "running"
+                : (run.signals[0]?.label ?? "")}
           </span>
         </button>
       ))}

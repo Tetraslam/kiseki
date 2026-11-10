@@ -45,10 +45,13 @@ export function Showcase({
   const demo = demos.find((d) => d.id === tab);
   return (
     <DropField onFile={onFile}>
-      <div className="grid min-h-dvh gap-3 p-3 lg:h-dvh lg:grid-cols-[minmax(320px,380px)_minmax(0,1fr)]">
-        <aside className="aizome relative flex flex-col overflow-hidden rounded-[14px] p-7 text-white">
+      <div className="grid min-h-dvh content-start gap-2 p-2 lg:h-dvh lg:grid-cols-[minmax(288px,304px)_minmax(0,1fr)] lg:content-stretch lg:gap-3 lg:p-3">
+        <aside className="aizome relative flex flex-col overflow-hidden rounded-[12px] p-3 text-white lg:rounded-[14px] lg:p-5">
           {intro}
-          <nav className="mt-9 grid gap-0.5" aria-label="demos">
+          <nav
+            className="-mx-1 mt-2.5 flex gap-0.5 overflow-x-auto [scrollbar-width:none] lg:mx-0 lg:mt-8 lg:grid"
+            aria-label="demos"
+          >
             {demos.map((d) => (
               <DemoButton
                 key={d.id}
@@ -65,13 +68,13 @@ export function Showcase({
               />
             )}
           </nav>
-          <p className="mt-3 px-3 text-[13px] text-white/60">
+          <p className="mt-3 hidden px-3 text-[13px] text-white/60 lg:block">
             <OpenFile onFile={onFile}>open a trace</OpenFile>
           </p>
-          <div className="mt-auto pt-8">{footer}</div>
+          <div className="mt-auto hidden pt-8 lg:block">{footer}</div>
         </aside>
         <section
-          className="flex h-[82dvh] min-h-0 flex-col overflow-hidden rounded-[14px] ring-1 ring-line lg:h-auto"
+          className="flex h-[calc(100dvh-96px)] min-h-0 flex-col overflow-hidden rounded-[12px] ring-1 ring-line lg:h-auto lg:rounded-[14px]"
           aria-label="trace"
         >
           {tab === "file" && dropped?.records[0] ? (
@@ -112,7 +115,7 @@ function DemoButton({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className="rounded-[8px] px-3 py-1.5 text-left transition-colors duration-[90ms] ease-track hover:bg-white/[0.07] aria-pressed:bg-white/[0.12]"
+      className="flex-none whitespace-nowrap rounded-[8px] px-3 py-1.5 text-left transition-colors duration-[90ms] ease-track hover:bg-white/[0.07] aria-pressed:bg-white/[0.12]"
     >
       <span className="text-[14px] font-medium">{label}</span>
     </button>
@@ -161,8 +164,8 @@ function Runs({ records, now }: { records: TraceRecord[]; now: number }) {
   const [selected, setSelected] = useState(records[0]?.trace_id ?? null);
   const record = records.find((r) => r.trace_id === selected);
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-[minmax(260px,340px)_minmax(0,1fr)]">
-      <div className="flex min-h-0 flex-col border-r border-line">
+    <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,34%)_minmax(0,1fr)] md:grid-cols-[minmax(240px,320px)_minmax(0,1fr)] md:grid-rows-1">
+      <div className="flex min-h-0 flex-col border-b border-line md:border-r md:border-b-0">
         <div className="flex h-[45px] flex-none items-center gap-2 border-b border-line px-4 text-[13px]">
           <span className="font-medium">runs</span>
           <span className="font-mono text-[11px] text-ink-3">{records.length}</span>

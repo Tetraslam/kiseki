@@ -172,6 +172,7 @@ function Frame({
         type="button"
         className="kiseki-call-line"
         aria-expanded={hasBody ? open : undefined}
+        title={props.call.duration_ms != null ? formatDuration(props.call.duration_ms) : undefined}
         onClick={props.onToggle}
       >
         <span className="kiseki-call-toggle" aria-hidden="true">
@@ -182,9 +183,6 @@ function Frame({
         <span className="kiseki-tool">{props.call.tool_name}</span>
         <span className="kiseki-target">{target}</span>
         {hasResult && !below && <span className="kiseki-inline-result">{result}</span>}
-        <span className="kiseki-call-time kiseki-num">
-          {formatDuration(props.call.duration_ms)}
-        </span>
       </button>
       {below && (
         <div className="kiseki-result">

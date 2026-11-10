@@ -130,8 +130,14 @@ export function TraceCompare({
       aria-label="trace comparison"
     >
       <div className="kiseki-compare-head">
-        <TraceHeader view={left} />
-        <TraceHeader view={right} />
+        <TraceHeader
+          view={left}
+          label={shortModel(left.record.agent.model) || left.record.agent.name}
+        />
+        <TraceHeader
+          view={right}
+          label={shortModel(right.record.agent.model) || right.record.agent.name}
+        />
       </div>
       <Delta
         left={left}
@@ -203,7 +209,6 @@ function Delta({
   divergence: boolean;
   onJump: () => void;
 }) {
-  const name = (view: TraceView) => shortModel(view.record.agent.model) || view.record.agent.name;
   const ratio = (a?: number, b?: number) => (a && b ? b / a : undefined);
   const parts: { label: string; value: string }[] = [];
   const steps = ratio(left.totals.steps, right.totals.steps);
@@ -222,9 +227,6 @@ function Delta({
   }
   return (
     <div className="kiseki-delta">
-      <span>
-        <b>{name(left)}</b> vs <b>{name(right)}</b>
-      </span>
       {parts.map((part) => (
         <span key={part.label}>
           {part.label} <b>{part.value}</b>

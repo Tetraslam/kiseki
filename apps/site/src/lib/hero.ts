@@ -37,7 +37,7 @@ export const demos = [
   {
     id: "custom",
     kind: "custom",
-    label: "your tools",
+    label: "custom tools",
     file: "opencode-research.json",
   },
 ] as const;

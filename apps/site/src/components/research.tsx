@@ -122,7 +122,7 @@ function SearchResults(props: ToolRendererProps) {
         <span className="ml-auto font-mono text-[11px] text-ink-3">{results.length} results</span>
       </div>
       <ol className="grid gap-px overflow-hidden rounded-[8px] ring-1 ring-line">
-        {results.slice(0, 5).map((hit, i) => (
+        {results.slice(0, 3).map((hit, i) => (
           <li
             key={hit.url}
             className="grid grid-cols-[18px_minmax(0,1fr)] gap-x-2.5 bg-s1 px-3 py-2"

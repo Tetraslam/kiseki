@@ -109,7 +109,11 @@ export function summarizeRun(view: TraceView): RunSummary {
   const started = record.timestamp_start ?? record.steps?.[0]?.timestamp;
   return {
     key: record.trace_id,
-    title: prompt
+    // A session's own title (OpenCode names every session), else the prompt.
+    title: (typeof record.metadata?.title === "string" && record.metadata.title.trim()
+      ? record.metadata.title
+      : prompt
+    )
       .replace(/^"(.*)"$/s, "$1")
       .replace(/\s+/g, " ")
       .trim(),

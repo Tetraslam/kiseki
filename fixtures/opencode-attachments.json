@@ -121,7 +121,6 @@
           "output_summary": "Read file /tmp/kiseki-runs/attach/package.json, lines 1-1 1: { \"name\": \"ledger\", \"version\": \"0.1.0\", \"type\": \"module\", \"scripts\": { \"test\": \"node --test\", \"report\": \"node src/cli.js report examples/m\u2026"
         }
       ],
-      "reasoning_content": "It doesn't bear on the task, so I'll set it aside and keep exploring the repo.",
       "token_usage": {
         "input_tokens": 31652,
         "output_tokens": 272,

@@ -316,6 +316,15 @@ export function Trace(props: TraceProps) {
     [late, view],
   );
   const workdir = useMemo(() => guessWorkdir(view), [view]);
+  // Turns are numbered in the parent's reading order; a subagent's turns sit inside its block.
+  const turnNumbers = useMemo(() => {
+    const numbers = new Map<string, number>();
+    view.roots.forEach((index, i) => {
+      const step = view.byIndex.get(index);
+      if (step) numbers.set(step.key, i);
+    });
+    return numbers;
+  }, [view]);
   const context = useMemo<TraceContextValue>(
     () => ({
       renderers: renderers ?? {},
@@ -325,6 +334,7 @@ export function Trace(props: TraceProps) {
       loadPatch,
       isExpanded: (key) => expanded.has(key),
       isUnfolded: (run) => unfolded.has(run),
+      turnNumber: (key) => turnNumbers.get(key),
       toggle,
       payloads,
       traceModel: record.agent.model,
@@ -344,6 +354,7 @@ export function Trace(props: TraceProps) {
       loadPatch,
       expanded,
       unfolded,
+      turnNumbers,
       toggle,
       payloads,
       record.agent.model,
@@ -639,7 +650,7 @@ export function Trace(props: TraceProps) {
                       aria-pressed={overviewOpen}
                       onClick={() => setOverviewOpen((open) => !open)}
                     >
-                      map
+                      timeline
                     </button>
                   )}
                   {notice && <span className="kiseki-status kiseki-num">{notice}</span>}

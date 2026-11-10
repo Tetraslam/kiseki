@@ -72,6 +72,7 @@ export const StepRow = memo(function StepRow({
       : step.error && typeof step.error === "object" && "message" in step.error
         ? String((step.error as { message: unknown }).message)
         : undefined;
+  const number = row.run || trace !== context.root ? undefined : context.turnNumber?.(view.key);
   const start = context.root.record.timestamp_start ?? context.root.record.steps?.[0]?.timestamp;
   const time = elapsed(step.timestamp, start ? Date.parse(start) : undefined);
   return (
@@ -80,6 +81,8 @@ export const StepRow = memo(function StepRow({
     <div
       className="kiseki-step"
       data-role={step.role}
+      data-in-run={row.run ? "" : undefined}
+      style={row.depth ? ({ "--kiseki-depth": row.depth } as React.CSSProperties) : undefined}
       data-selected={selected || undefined}
       data-match={match || undefined}
       data-prose={context.prose}
@@ -105,7 +108,7 @@ export const StepRow = memo(function StepRow({
           className="kiseki-gutter-num"
           {...(timing ? { elementtiming: "kiseki-first-row" } : {})}
         >
-          {String(view.position).padStart(2, "0")}
+          {number != null ? String(number).padStart(2, "0") : ""}
         </span>
       </div>
       <div

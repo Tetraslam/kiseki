@@ -1,24 +1,30 @@
 {
   "firstRowsSamplesMs": [
-    87,
-    91,
-    84,
-    80,
-    87
+    89,
+    82,
+    76,
+    88,
+    97
   ],
-  "firstRowsMedianMs": 87,
+  "firstRowsMedianMs": 88,
   "steps": 10000,
-  "parseMs": 92.39999999850988,
-  "firstRowsMs": 87.69999999925494,
-  "firstRowsCommitMs": 49.400000002235174,
+  "parseMs": 86.10000000149012,
+  "firstRowsMs": 83.5,
+  "firstRowsCommitMs": 44.69999999925494,
   "longTasksAfterParse": [
-    74
+    70
   ],
-  "domRows": 13,
+  "domRows": 12,
   "diffsLoadedAtRest": true,
   "scrollSettleMovePx": 0,
   "scrollCls": 0,
-  "scrollLongTasks": [],
+  "scrollLongTasks": [
+    61,
+    50,
+    51,
+    55,
+    51
+  ],
   "expandMovesRowsAbovePx": 0,
   "diffsLoadedAfterExpand": true,
   "cls": 0,
@@ -31,7 +37,7 @@
   "streamReaderMovePx": 0,
   "streamCls": 0,
   "streamLongTasks": [],
-  "followGapPx": 3,
+  "followGapPx": 2,
   "sitePageScrolledPx": 0,
   "siteAnchorDriftPx": 0,
   "siteNestedScroller": true,
@@ -43,5 +49,5 @@
     "following": true,
     "siteAnchored": true
   },
-  "measuredAt": "2026-11-10T00:52:21.983Z"
+  "measuredAt": "2026-11-10T01:01:11.583Z"
 }

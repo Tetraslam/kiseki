@@ -11,6 +11,8 @@ export interface TraceContextValue extends TraceLoaders {
   renderers: Renderers;
   live: boolean;
   isExpanded: (key: string) => boolean;
+  /** The parent's turn number for a top-level step; subagent turns have none. */
+  turnNumber?: (key: string) => number | undefined;
   /** Whether a subagent run (`runKey`) is unfolded. */
   isUnfolded?: (run: string) => boolean;
   toggle: (key: string) => void;

@@ -13,7 +13,6 @@ import {
 } from "react";
 import { Streamdown } from "streamdown";
 import { callKey, patchKey, useTrace } from "./context";
-import { wordCount } from "./format";
 import { Reveal } from "./motion";
 import { derivePatch, lineCounts } from "./patches";
 import { ToolCallBlock } from "./tools";
@@ -99,17 +98,29 @@ export function Reasoning({
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const long = text.length > 900 || text.split("\n").length > 10;
+  // One line until asked for: what the agent did matters more than how it talked itself there.
+  const lines = text.trim().split(/\n+/);
+  const preview = (lines.at(-1) ?? "").replace(/[*_`#>]/g, "");
   return (
     <div className="kiseki-reasoning">
-      <div className="kiseki-reasoning-text" data-clamped={(long && !expanded) || undefined}>
-        {text.trim()}
-      </div>
-      {long && (
-        <button type="button" className="kiseki-more" aria-expanded={expanded} onClick={onToggle}>
-          {expanded ? "show less" : `show all ${wordCount(text)} words`}
-        </button>
-      )}
+      <button
+        type="button"
+        className="kiseki-thought"
+        aria-expanded={expanded}
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggle();
+        }}
+      >
+        <Chevron />
+        <span className="kiseki-thought-label">thought</span>
+        <span className="kiseki-thought-preview" data-hidden={expanded || undefined}>
+          {lines.length > 1 ? (lines[0] ?? "").replace(/[*_`#>]/g, "") : preview}
+        </span>
+      </button>
+      <Reveal open={expanded}>
+        {() => <div className="kiseki-reasoning-text">{text.trim()}</div>}
+      </Reveal>
     </div>
   );
 }

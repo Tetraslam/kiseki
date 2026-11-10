@@ -35,15 +35,19 @@ export default async function Home() {
       <Showcase
         demos={demos}
         intro={
-          <div className="px-3">
-            <h1 className="flex items-end gap-3">
-              <span className="font-display text-[84px] font-extrabold leading-[0.82] tracking-[-0.04em]">
+          <div className="flex items-center gap-3 px-1 lg:block lg:px-3">
+            <h1 className="flex flex-none items-end gap-2 lg:gap-3">
+              <span className="font-display text-[34px] font-extrabold leading-[0.82] tracking-[-0.04em] lg:text-[64px]">
                 軌跡
               </span>
-              <span className="pb-1 text-[15px] font-medium text-white/80">kiseki</span>
+              <span className="text-[13px] font-medium text-white/80 lg:pb-0.5 lg:text-[14px]">
+                kiseki
+              </span>
             </h1>
-            <p className="mt-6 text-[17px] font-medium">a react component for agent traces.</p>
-            <div className="mt-4">
+            <p className="min-w-0 truncate text-[13px] text-white/75 lg:mt-5 lg:whitespace-normal lg:text-[16px] lg:font-medium lg:text-white">
+              a react component for agent traces.
+            </p>
+            <div className="mt-4 hidden lg:block">
               <CopyCommand command="pnpm add @tetraslam/kiseki" tone="dye" />
             </div>
           </div>
@@ -66,6 +70,9 @@ export default async function Home() {
         }
       />
       <section className="mx-auto grid w-full max-w-[1200px] gap-6 px-6 py-14 md:grid-cols-2">
+        <div className="lg:hidden">
+          <CopyCommand command="pnpm add @tetraslam/kiseki" />
+        </div>
         <div className="grid content-start gap-2">
           <h2 className="text-[14px] font-semibold">use</h2>
           <Code code={usage} />

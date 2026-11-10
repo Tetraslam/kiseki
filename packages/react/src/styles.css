@@ -220,9 +220,9 @@
 
 .kiseki-stats {
   display: flex;
+  flex: none;
   align-items: baseline;
   gap: 14px;
-  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   color: var(--kiseki-ink-3);
@@ -520,7 +520,7 @@
 }
 
 /* one rail per nesting level */
-.kiseki-body[data-depth]::before {
+.kiseki-step:not([data-in-run]) .kiseki-body[data-depth]::before {
   content: "";
   position: absolute;
   top: 0;
@@ -532,6 +532,27 @@
   background-size: 18px 100%;
   background-position: 5px 0;
   background-repeat: repeat-x;
+}
+
+/* an open subagent: its turns share one bounded inset under the block that launched it */
+.kiseki-step[data-in-run] {
+  padding-top: 8px;
+  padding-bottom: 4px;
+  min-height: 0;
+}
+
+.kiseki-step[data-in-run]::before {
+  content: "";
+  position: absolute;
+  inset: 0 20px 0 calc(52px + (var(--kiseki-depth) - 1) * 18px);
+  border-left: 2px solid color-mix(in srgb, transparent 30%, var(--kiseki-accent));
+  background: color-mix(in srgb, transparent 55%, var(--kiseki-sunken));
+  pointer-events: none;
+}
+
+.kiseki-step[data-in-run] > .kiseki-body {
+  padding-left: calc((var(--kiseki-depth) - 1) * 18px + 16px);
+  padding-right: 12px;
 }
 
 /* the gutter: the turn number; its time, duration, and tokens are in the title */
@@ -771,30 +792,55 @@
 
 .kiseki-reasoning {
   display: grid;
-  gap: 2px;
+  max-width: var(--kiseki-measure);
 }
 
-/* what the agent thought, readable, set off by a rule rather than by fading it */
+/* reasoning folds to one line: the word "thought" and its opening */
+.kiseki-thought {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 26px;
+  margin: 0 -6px;
+  padding: 0 6px;
+  border-radius: 6px;
+  text-align: left;
+  color: var(--kiseki-ink-3);
+  font-size: var(--kiseki-size-small);
+  transition: background var(--kiseki-fast) var(--kiseki-track);
+}
+
+.kiseki-thought:hover {
+  background: var(--kiseki-hover);
+}
+
+.kiseki-thought-label {
+  flex: none;
+  color: var(--kiseki-ink-2);
+}
+
+.kiseki-thought-preview {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: opacity var(--kiseki-standard) var(--kiseki-track);
+}
+
+.kiseki-thought-preview[data-hidden] {
+  opacity: 0;
+}
+
 .kiseki-reasoning-text {
+  margin: 4px 0 6px;
   padding: 1px 0 1px 14px;
   border-left: 2px solid var(--kiseki-line-2);
   color: var(--kiseki-ink-2);
   font-size: var(--kiseki-prose-size);
   line-height: 1.65;
   white-space: pre-wrap;
-  max-width: var(--kiseki-measure);
   overflow-wrap: anywhere;
-}
-
-.kiseki-reasoning-text[data-clamped] {
-  display: -webkit-box;
-  -webkit-line-clamp: 6;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.kiseki-reasoning > button {
-  margin-left: 11px;
 }
 
 /* tool calls: compact lines, the tool as a small tag, the result quieter beneath */
@@ -851,9 +897,8 @@
 /* the tool's name: plain receded mono; only failures get emphasis */
 .kiseki-tool {
   flex: none;
-  font-family: var(--kiseki-mono);
-  font-size: 11px;
-  color: var(--kiseki-ink-3);
+  font-size: var(--kiseki-size-small);
+  color: var(--kiseki-ink-2);
 }
 
 .kiseki-call[data-status="error"] .kiseki-tool,
@@ -878,15 +923,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--kiseki-mono);
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--kiseki-ink);
-}
-
-.kiseki-call-time {
-  flex: none;
-  min-width: 4.5ch;
-  text-align: right;
-  color: var(--kiseki-ink-3);
 }
 
 .kiseki-result {
@@ -1478,6 +1516,8 @@
 
 .kiseki-details-panel dd {
   margin: 0;
+  font-family: inherit;
+  font-size: var(--kiseki-size-small);
   color: var(--kiseki-ink);
 }
 
@@ -1503,12 +1543,6 @@
   border-radius: 6px;
   background: var(--kiseki-sunken);
   box-shadow: 0 0 0 1px var(--kiseki-line-2);
-  cursor: zoom-in;
-  transition: width var(--kiseki-slow) var(--kiseki-open);
-}
-
-.kiseki-image[data-large] {
-  cursor: zoom-out;
 }
 
 .kiseki-image img {
@@ -1528,4 +1562,19 @@
   box-shadow: inset 0 0 0 1px var(--kiseki-line-2);
   font-size: var(--kiseki-size-tiny);
   color: var(--kiseki-ink-2);
+}
+
+.kiseki-header-label {
+  font-weight: 600;
+  color: var(--kiseki-ink);
+}
+
+.kiseki-details-lead {
+  max-width: 280px;
+  margin: 0 0 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--kiseki-line-1);
+  font-size: var(--kiseki-size);
+  line-height: 1.5;
+  color: var(--kiseki-ink);
 }
