@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   align,
   branchTree,
+  codeModeCalls,
+  codeModeValue,
   firstDivergence,
+  formatCodeModeCall,
   normalize,
   parseTraces,
   resolveGenerations,
@@ -267,3 +270,28 @@ function lcs(a: string[], b: string[]): number {
           : Math.max(dp[i - 1]?.[j] as number, dp[i]?.[j - 1] as number);
   return dp[a.length]?.[b.length] as number;
 }
+
+describe("code mode", () => {
+  it("finds the tools a snippet calls, with their telling argument", () => {
+    const code = `const acct = "1";
+const [p, q] = await Promise.all([
+  tools.robinhood.get_portfolio({ account_number: acct }),
+  tools.x["search_posts_all"]({ query: "NVDA", max_results: 20 }),
+]);
+// tools.never.called()
+const found = await search({ namespace: "firecrawl", query: "scrape" });
+return tools.robinhood.get_quotes({ symbols: ["AAPL", "NVDA"] });`;
+    expect(codeModeCalls(code).map(formatCodeModeCall)).toEqual([
+      "robinhood.get_portfolio",
+      "x.search_posts_all 'NVDA'",
+      "search 'firecrawl: scrape'",
+      "robinhood.get_quotes 'AAPL, NVDA'",
+    ]);
+  });
+
+  it("reads the returned JSON, and gives up on anything else", () => {
+    expect(codeModeValue('{ "a": [1, 2] }')).toEqual({ a: [1, 2] });
+    expect(codeModeValue("Error: boom")).toBeUndefined();
+    expect(codeModeValue('{ "a": "cut off')).toBeUndefined();
+  });
+});

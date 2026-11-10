@@ -13,6 +13,12 @@ export const demos = [
     file: "opencode-ledger-month.json",
   },
   {
+    id: "codemode",
+    kind: "coding",
+    label: "code mode",
+    file: "opencode-codemode-trading.json",
+  },
+  {
     id: "runs",
     kind: "runs",
     label: "runs",

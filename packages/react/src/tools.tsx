@@ -1,5 +1,11 @@
-import { testCounts as coreTestCounts, type PairedCall } from "@tetraslam/kiseki-core";
-import { type ReactNode, useState } from "react";
+import {
+  codeModeCalls,
+  codeModeValue,
+  testCounts as coreTestCounts,
+  formatCodeModeCall,
+  type PairedCall,
+} from "@tetraslam/kiseki-core";
+import { type ReactNode, useMemo, useState } from "react";
 import { Attachments } from "./attachments";
 import { DiffView } from "./blocks";
 import { useTrace } from "./context";
@@ -8,6 +14,7 @@ import { Reveal } from "./motion";
 import { derivePatch, lineCounts } from "./patches";
 import { useDelayed } from "./state";
 import type { PatchContent, ToolRendererProps } from "./types";
+import { Value, valueSummary } from "./value";
 
 export type ToolKind =
   | "edit"
@@ -18,6 +25,7 @@ export type ToolKind =
   | "glob"
   | "task"
   | "fetch"
+  | "codemode"
   | "generic";
 
 const names: Record<Exclude<ToolKind, "generic">, string[]> = {
@@ -49,11 +57,15 @@ const names: Record<Exclude<ToolKind, "generic">, string[]> = {
   glob: ["glob", "ls", "list", "list_files", "list_directory", "find", "find_files"],
   task: ["task", "agent", "subagent", "delegate", "dispatch_agent"],
   fetch: ["webfetch", "fetch", "web_fetch", "websearch", "web_search", "http", "browse"],
+  codemode: ["execute", "execute_code", "run_code", "code_mode", "codemode"],
 };
 
 /** Which built-in renderer fits a tool, by its name and then by the shape of its input. */
 export function toolKind(name: string, input?: Record<string, unknown>): ToolKind {
   const bare = name.split(/__|\./).at(-1)?.toLowerCase() ?? "";
+  // Code Mode runs a snippet; without one, `execute` is an ordinary tool.
+  if (names.codemode.includes(bare))
+    return typeof input?.code === "string" ? "codemode" : "generic";
   for (const [kind, list] of Object.entries(names))
     if (list.includes(bare)) return kind as ToolKind;
   if (input) {
@@ -631,6 +643,84 @@ export function FetchCall(props: ToolRendererProps) {
 }
 
 /** Anything else: the summary leads; input and output show as readable fields, never raw overflow. */
+/**
+ * A Code Mode `execute` call: the tools its snippet called stand in for the snippet, and the
+ * value it returned reads as data. The code is one click away.
+ */
+export function CodeModeCallView(props: ToolRendererProps) {
+  const code = String(props.call.input?.code ?? "");
+  const calls = useMemo(() => codeModeCalls(code), [code]);
+  const output = outputOf(props);
+  const value = useMemo(() => codeModeValue(output), [output]);
+  const [showCode, setShowCode] = useState(false);
+  const error = props.observation?.error;
+  const target =
+    calls.length === 0 ? (
+      <span className="kiseki-dim">{oneLine(code, 100)}</span>
+    ) : (
+      <span className="kiseki-codemode-calls">
+        {calls.slice(0, 3).map((call, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: calls in snippet order.
+          <span key={i} className="kiseki-codemode-call">
+            <span>{call.namespace ? `${call.namespace}.${call.name}` : call.name}</span>
+            {call.arg && <span className="kiseki-codemode-arg"> '{call.arg}'</span>}
+          </span>
+        ))}
+        {calls.length > 3 && <span className="kiseki-dim">+{calls.length - 3}</span>}
+      </span>
+    );
+  const result =
+    props.status === "pending" || props.status === "missing" ? (
+      <Pending props={props} label="running" />
+    ) : error ? (
+      oneLine(error, 140)
+    ) : value !== undefined ? (
+      valueSummary(value)
+    ) : output ? (
+      oneLine(output, 120)
+    ) : undefined;
+  return (
+    <Frame props={props} result={result} target={target} failed={props.status === "error"}>
+      {(open) =>
+        open ? (
+          <div className="kiseki-call-body">
+            <ErrorBlock props={props} />
+            {calls.length > 3 && (
+              <div className="kiseki-codemode-all">
+                {calls.map((call, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: calls in snippet order.
+                  <span key={i}>{formatCodeModeCall(call)}</span>
+                ))}
+              </div>
+            )}
+            {value !== undefined ? (
+              <div className="kiseki-value">
+                <Value value={value} />
+              </div>
+            ) : output ? (
+              <Output text={tryPretty(output)} open tail={400} />
+            ) : null}
+            <button
+              type="button"
+              className="kiseki-more"
+              aria-expanded={showCode}
+              onClick={(event) => {
+                event.stopPropagation();
+                setShowCode((s) => !s);
+              }}
+            >
+              {showCode ? "hide code" : "code"}
+            </button>
+            <Reveal open={showCode}>
+              {() => <pre className="kiseki-codemode-code">{code}</pre>}
+            </Reveal>
+          </div>
+        ) : null
+      }
+    </Frame>
+  );
+}
+
 export function GenericCall(props: ToolRendererProps) {
   const output = outputOf(props);
   const summary = props.observation?.error
@@ -737,6 +827,7 @@ const builtIns: Record<ToolKind, (props: ToolRendererProps) => ReactNode> = {
   glob: GlobCall,
   task: TaskCall,
   fetch: FetchCall,
+  codemode: CodeModeCallView,
   generic: GenericCall,
 };
 

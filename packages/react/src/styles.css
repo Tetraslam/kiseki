@@ -921,6 +921,7 @@
 .kiseki-inline-result {
   flex: 0 1 auto;
   min-width: 0;
+  max-width: 45%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1634,4 +1635,162 @@
   border-radius: 3px;
   background: var(--kiseki-accent-wash);
   box-shadow: inset 2px 0 0 var(--kiseki-accent);
+}
+
+/* code mode: the tools a snippet called, and the value it returned read as data */
+.kiseki-codemode-calls {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kiseki-codemode-call + .kiseki-codemode-call,
+.kiseki-codemode-calls > .kiseki-dim {
+  margin-left: 14px;
+}
+
+.kiseki-codemode-arg {
+  color: var(--kiseki-ink-2);
+}
+
+.kiseki-codemode-all {
+  display: grid;
+  gap: 2px;
+  font-family: var(--kiseki-mono);
+  font-size: 12px;
+  color: var(--kiseki-ink-2);
+}
+
+.kiseki-codemode-code {
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--kiseki-sunken);
+  font-family: var(--kiseki-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--kiseki-ink-2);
+}
+
+.kiseki-value {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--kiseki-raised);
+  box-shadow: inset 0 0 0 1px var(--kiseki-line-1);
+  font-size: var(--kiseki-size-small);
+  line-height: 1.55;
+  overflow-x: auto;
+}
+
+.kiseki-value-pairs {
+  display: grid;
+  gap: 3px;
+}
+
+.kiseki-value-pairs[data-depth] {
+  padding-left: 10px;
+  border-left: 1px solid var(--kiseki-line-2);
+}
+
+.kiseki-value-pair {
+  display: grid;
+  grid-template-columns: minmax(80px, max-content) minmax(0, 1fr);
+  gap: 14px;
+  align-items: baseline;
+}
+
+.kiseki-value-key {
+  font-family: var(--kiseki-mono);
+  font-size: 11.5px;
+  color: var(--kiseki-ink-3);
+}
+
+.kiseki-value-val {
+  min-width: 0;
+  color: var(--kiseki-ink);
+}
+
+.kiseki-value-num {
+  font-family: var(--kiseki-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.kiseki-value-null {
+  color: var(--kiseki-ink-3);
+}
+
+.kiseki-value-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.kiseki-value-text[data-clamped] {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.kiseki-value-table-wrap {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.kiseki-value-table {
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.kiseki-value-table th {
+  padding: 2px 14px 4px 0;
+  text-align: left;
+  font-family: var(--kiseki-mono);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--kiseki-ink-3);
+  white-space: nowrap;
+}
+
+.kiseki-value-table td {
+  padding: 3px 14px 3px 0;
+  border-top: 1px solid var(--kiseki-line-1);
+  white-space: nowrap;
+  color: var(--kiseki-ink);
+}
+
+.kiseki-value-table td[data-num] {
+  font-family: var(--kiseki-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.kiseki-value-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.kiseki-value-list[data-long] {
+  display: grid;
+  gap: 3px;
+}
+
+.kiseki-value-item {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.kiseki-value-items {
+  display: grid;
+  gap: 6px;
+}
+
+.kiseki-value-entry + .kiseki-value-entry {
+  padding-top: 6px;
+  border-top: 1px solid var(--kiseki-line-1);
 }

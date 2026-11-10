@@ -1,4 +1,5 @@
 export { type AlignedPair, align, firstDivergence, sideBySide } from "./align";
+export { type CodeModeCall, codeModeCalls, codeModeValue, formatCodeModeCall } from "./codemode";
 export {
   type CallStatus,
   type NormalizeOptions,

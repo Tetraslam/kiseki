@@ -100,7 +100,8 @@ export function Reasoning({
 }) {
   // One line until asked for: what the agent did matters more than how it talked itself there.
   const lines = text.trim().split(/\n+/);
-  const preview = (lines.at(-1) ?? "").replace(/[*_`#>]/g, "");
+  const plain = (line: string) => line.replace(/[*`#>]|(^|\s)_|_(\s|$)/g, "$1$2");
+  const preview = plain(lines.at(-1) ?? "");
   return (
     <div className="kiseki-reasoning">
       <button
@@ -115,7 +116,7 @@ export function Reasoning({
         <Chevron />
         <span className="kiseki-thought-label">thought</span>
         <span className="kiseki-thought-preview" data-hidden={expanded || undefined}>
-          {lines.length > 1 ? (lines[0] ?? "").replace(/[*_`#>]/g, "") : preview}
+          {lines.length > 1 ? plain(lines[0] ?? "") : preview}
         </span>
       </button>
       <Reveal open={expanded}>

@@ -86,6 +86,7 @@ kiseki picks a view for each call from the tool's name, then the shape of its in
 | grep, search | the match count | the pattern and the first matches, highlighted |
 | write | the line count | the new file with line numbers |
 | glob, ls | the file count | the files on click |
+| execute (Code Mode) | the tools the snippet called, and a one-line read of what it returned | the returned value as key/values and tables, and the code |
 | task, agent | the subagent finished | its result on click |
 | anything else | the output summary | input as key and value, output pretty-printed |
 

@@ -21,6 +21,7 @@ export { TraceHeader, type TraceHeaderProps } from "./TraceHeader";
 export { TraceList, type TraceListProps } from "./TraceList";
 export { type OverviewHandle, TraceOverview, type TraceOverviewProps } from "./TraceOverview";
 export {
+  CodeModeCallView,
   EditCall,
   exitCode,
   Fields,
@@ -45,3 +46,4 @@ export type {
   TraceHandle,
   TraceLoaders,
 } from "./types";
+export { Value, valueSummary } from "./value";
