@@ -238,7 +238,7 @@ function Delta({
       <span className="kiseki-delta-key">unmatched</span>
       {divergence && (
         <button type="button" className="kiseki-chip" data-push="" onClick={onJump}>
-          jump to where they split
+          first unmatched step
         </button>
       )}
     </div>

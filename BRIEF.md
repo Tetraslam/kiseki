@@ -33,6 +33,8 @@ the trace is the product. it reads top to bottom, in order, as a run made of tur
 - **live**: a cursor sits at the end of the latest turn, and "scroll to latest" appears only when the reader has scrolled up.
 - **the map** (the trajectory overview) is secondary: closed by default, opened from the bar, and floating over the trace rather than pushing it down.
 - **site**: one screen. the dyed panel holds the name, one line, install, and the demo picker; beside it, kiseki inside the interfaces people build: a chat with a composer (streaming), a coding agent, a run inbox, an eval comparison, and a research tool with the host's own renderers. copy is minimal: say it once, plainly, no metaphors.
+- **hierarchy**: every visible element answers what the agent did and whether it worked. a turn shows its number, its prose, and one line per tool (name, target, and a result only when it says something: failures, tests, edits). reasoning folds to one line. everything else (time, tokens, model, counts, cost) is on hover or in the header's details popover. a subagent is a block in the turn that launched it; opening it shows its turns in one bounded inset directly under it. on narrow screens the trace comes first and the panel shrinks to a row.
+- **motion**: every open and close moves height and opacity on the open curve (280ms height, 180ms opacity), measured so nothing snaps; diffs keep a placeholder drawn in pierre's own columns until pierre has painted, then fade it out. reduced motion snaps.
 
 the bar for every row, gap, type size, and hover is diffs.com and trees.software: hairline frames, 6px hover radii, 28px interactive lines, quiet diff backgrounds, 12–13px ui type, 20px code lines, and soft ink rather than pure white.
 

@@ -158,7 +158,9 @@ function SearchResults(props: ToolRendererProps) {
               event.stopPropagation();
               setAll((a) => !a);
             }}
-            className="bg-s1 px-3 py-1.5 text-left text-[12px] text-ink-2 transition-colors duration-[90ms] hover:bg-s2"
+            // kiseki's button reset is unlayered, so it beats Tailwind's padding utilities.
+            style={{ padding: "7px 12px 7px 40px" }}
+            className="bg-s1 text-left text-[12px] text-ink-2 transition-colors duration-[90ms] hover:bg-s2"
           >
             {all ? "show fewer" : `show ${results.length - 3} more`}
           </button>

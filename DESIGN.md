@@ -68,7 +68,7 @@ Heavy payloads: render `output_summary` first. Full `content` comes from the rec
 - `renderers={{ tools: { searchProfiles: PeopleCards }, fallback }}`: custom renderers per `tool_name`. They receive the paired call, its observation, and the step.
 - `<TraceList records={...} />`: a list of runs, one row each: what was asked and when, then one muted line read from the trace by core's `summarizeRun` (failed, tests failing to passing, tool errors, files edited, subagents). No colored pills. Hosts add their own signals through `summarize`. This is the inbox a raindrop-style tool opens on.
 - User turns read as right-aligned bubbles, as in a chat; agent turns are plain prose.
-- `<TraceCompare a={...} b={...} />`: opens with what differs (models, steps, time, cost, steps in common, a jump to where they split), then two traces aligned by step signature (role plus tool names), via LCS. It highlights where the two runs diverge.
+- `<TraceCompare a={...} b={...} />`: each column is headed by its model. A summary line gives steps, time, and cost for both, how many steps matched by tool, and a jump to the first unmatched step. The traces are aligned by step signature (role plus tool names) via LCS, then laid out side by side (`sideBySide`), so a block only one run took sits beside the block the other took instead. Matched means the same tools in the same role, not the same commands or results; only unmatched steps are tinted.
 
 ## Live mode
 
