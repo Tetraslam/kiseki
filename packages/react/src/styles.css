@@ -797,7 +797,8 @@
   transition: transform var(--kiseki-standard) var(--kiseki-open);
 }
 
-[aria-expanded="true"] > .kiseki-chevron {
+[aria-expanded="true"] > .kiseki-chevron,
+.kiseki-subagent[aria-expanded="true"] .kiseki-chevron {
   transform: rotate(90deg);
 }
 
@@ -1517,7 +1518,7 @@
 
 .kiseki-details-panel dl > span {
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
+  grid-template-columns: 84px minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -1596,6 +1597,10 @@
 }
 
 @container kiseki (max-width: 560px) {
+  .kiseki-kbd {
+    display: none;
+  }
+
   .kiseki-step {
     padding: 10px 14px 6px 34px;
   }
@@ -1624,9 +1629,9 @@
 
 .kiseki-delta-key::before {
   content: "";
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  background: color-mix(in srgb, transparent 55%, var(--kiseki-accent-wash));
-  box-shadow: inset 2px 0 0 color-mix(in srgb, transparent 40%, var(--kiseki-accent));
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--kiseki-accent-wash);
+  box-shadow: inset 2px 0 0 var(--kiseki-accent);
 }

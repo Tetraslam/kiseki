@@ -266,9 +266,9 @@ function SubagentBlock({
         ) : running ? (
           <span className="kiseki-shimmer">working</span>
         ) : answer ? (
-          oneLine(gist(answer), 160)
+          oneLine(gist(answer) ?? "", 160)
         ) : (
-          "open"
+          ""
         )}
       </span>
     </button>
@@ -276,19 +276,18 @@ function SubagentBlock({
 }
 
 /** The first line of an answer that reads as a sentence: no headings, rules, or table rows. */
-function gist(text: string): string {
-  const lines = text
-    .split("\n")
-    .map((l) =>
-      l
-        .trim()
-        .replace(/^[-*]\s+|^\d+\.\s+/, "")
-        .replace(/\*\*|`/g, ""),
-    )
-    .filter((l) => l && !/^(#{1,6}\s|\||[-*_]{3,}$|```)/.test(l));
-  // Prefer a sentence over a path or a table cell.
-  const sentence = lines.find((l) => l.split(/\s+/).length >= 6 && !/(^|\s)\/\S+\/\S+/.test(l));
-  return sentence ?? lines[0] ?? text;
+function gist(text: string): string | undefined {
+  // A finding reads as a sentence: eight words or more, at most one code span, no paths.
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (!line || /^(#{1,6}\s|\||[-*_]{3,}$|```)/.test(line)) continue;
+    if ((line.match(/`[^`]+`/g) ?? []).length > 1 || /(^|\s)`?\/\S+\/\S+/.test(line)) continue;
+    // Diagrams and arrows aren't prose.
+    if (/[\u2500-\u257f\u2190-\u21ff\u25a0-\u25ff]|->|=>/.test(line)) continue;
+    const plain = line.replace(/^[-*]\s+|^\d+\.\s+/, "").replace(/\*\*|`/g, "");
+    if (/^[A-Za-z]/.test(plain) && plain.split(/\s+/).length >= 8) return plain;
+  }
+  return undefined;
 }
 
 /** The calls that launched this turn's subagents, when they match its runs one to one. */

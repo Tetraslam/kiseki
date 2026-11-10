@@ -182,7 +182,7 @@
     "total_duration_s": 37.43
   },
   "metadata": {
-    "title": "research: postgres vs sqlite for an agent's memory",
+    "title": "research: agent memory storage",
     "directory": "/tmp/kiseki-runs/research"
   }
 }

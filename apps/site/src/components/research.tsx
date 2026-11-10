@@ -122,46 +122,48 @@ function SearchResults(props: ToolRendererProps) {
         <span className="text-foreground">{query}</span>
         <span className="ml-auto font-mono text-[11px] text-ink-3">{results.length} results</span>
       </div>
-      <ol className="grid gap-px overflow-hidden rounded-[8px] ring-1 ring-line">
-        {results.slice(0, all ? results.length : 3).map((hit, i) => (
-          <li
-            key={hit.url}
-            className="grid grid-cols-[18px_minmax(0,1fr)] gap-x-2.5 bg-s1 px-3 py-2"
+      <div className="grid gap-px overflow-hidden rounded-[8px] bg-line ring-1 ring-line">
+        <ol className="grid gap-px">
+          {results.slice(0, all ? results.length : 3).map((hit, i) => (
+            <li
+              key={hit.url}
+              className="grid grid-cols-[18px_minmax(0,1fr)] gap-x-2.5 bg-s1 px-3 py-2"
+            >
+              <Mark domain={hit.domain} />
+              <span className="min-w-0">
+                <span className="flex items-baseline gap-2">
+                  <a
+                    href={hit.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="truncate text-[13px] text-foreground hover:underline"
+                  >
+                    {hit.title}
+                  </a>
+                  {read.has(norm(hit.url)) && (
+                    <span className="flex-none text-[10.5px] text-[var(--kiseki-add)]">read</span>
+                  )}
+                </span>
+                <span className="block truncate font-mono text-[11.5px] text-ink-2">
+                  {i + 1}. {hit.domain}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ol>
+        {results.length > 3 && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setAll((a) => !a);
+            }}
+            className="bg-s1 px-3 py-1.5 text-left text-[12px] text-ink-2 transition-colors duration-[90ms] hover:bg-s2"
           >
-            <Mark domain={hit.domain} />
-            <span className="min-w-0">
-              <span className="flex items-baseline gap-2">
-                <a
-                  href={hit.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="truncate text-[13px] text-foreground hover:underline"
-                >
-                  {hit.title}
-                </a>
-                {read.has(norm(hit.url)) && (
-                  <span className="flex-none text-[10.5px] text-[var(--kiseki-add)]">read</span>
-                )}
-              </span>
-              <span className="block truncate font-mono text-[11.5px] text-ink-2">
-                {i + 1}. {hit.domain}
-              </span>
-            </span>
-          </li>
-        ))}
-      </ol>
-      {results.length > 3 && (
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            setAll((a) => !a);
-          }}
-          className="w-fit rounded-[6px] px-1.5 py-0.5 text-[12px] text-ink-2 transition-colors duration-[90ms] hover:bg-s2"
-        >
-          {all ? "show fewer" : `show ${results.length - 3} more`}
-        </button>
-      )}
+            {all ? "show fewer" : `show ${results.length - 3} more`}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

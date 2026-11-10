@@ -233,9 +233,9 @@ function Delta({
         </span>
       ))}
       <span>
-        <b>{shared}</b> steps in common
+        <b>{shared}</b> steps matched by tool
       </span>
-      <span className="kiseki-delta-key">steps that differ</span>
+      <span className="kiseki-delta-key">unmatched</span>
       {divergence && (
         <button type="button" className="kiseki-chip" data-push="" onClick={onJump}>
           jump to where they split
