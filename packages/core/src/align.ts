@@ -2,6 +2,8 @@
 export interface AlignedPair {
   a?: number;
   b?: number;
+  /** Both runs took a step here, but different ones. */
+  changed?: boolean;
 }
 
 /**
@@ -108,5 +110,35 @@ function middle(
 
 /** Index of the first pair where the runs diverge, or -1 when they match throughout. */
 export function firstDivergence(pairs: readonly AlignedPair[]): number {
-  return pairs.findIndex((pair) => pair.a == null || pair.b == null);
+  return pairs.findIndex((pair) => pair.a == null || pair.b == null || pair.changed);
+}
+
+/**
+ * Lays an alignment out for reading side by side, the way a diff viewer pairs a removed block
+ * with the added block that replaced it: between two matches, the steps only A took and the
+ * steps only B took share rows instead of stacking.
+ */
+export function sideBySide(pairs: readonly AlignedPair[]): AlignedPair[] {
+  const out: AlignedPair[] = [];
+  let onlyA: number[] = [];
+  let onlyB: number[] = [];
+  const flush = () => {
+    const n = Math.max(onlyA.length, onlyB.length);
+    for (let i = 0; i < n; i++) {
+      const a = onlyA[i];
+      const b = onlyB[i];
+      out.push(a != null && b != null ? { a, b, changed: true } : a != null ? { a } : { b });
+    }
+    onlyA = [];
+    onlyB = [];
+  };
+  for (const pair of pairs) {
+    if (pair.a != null && pair.b != null) {
+      flush();
+      out.push(pair);
+    } else if (pair.a != null) onlyA.push(pair.a);
+    else if (pair.b != null) onlyB.push(pair.b);
+  }
+  flush();
+  return out;
 }

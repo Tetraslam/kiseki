@@ -1,24 +1,27 @@
 {
   "firstRowsSamplesMs": [
-    77,
-    72,
-    80,
+    88,
     75,
-    74
+    75,
+    75,
+    88
   ],
   "firstRowsMedianMs": 75,
   "steps": 10000,
-  "parseMs": 89.70000000298023,
-  "firstRowsMs": 89.39999999850988,
-  "firstRowsCommitMs": 49.69999999925494,
+  "parseMs": 83,
+  "firstRowsMs": 72.80000000074506,
+  "firstRowsCommitMs": 35.600000001490116,
   "longTasksAfterParse": [
-    74
+    57
   ],
   "domRows": 12,
   "diffsLoadedAtRest": true,
   "scrollSettleMovePx": 0,
   "scrollCls": 0,
-  "scrollLongTasks": [],
+  "scrollLongTasks": [
+    53,
+    50
+  ],
   "expandMovesRowsAbovePx": 0,
   "diffsLoadedAfterExpand": true,
   "cls": 0,
@@ -31,11 +34,11 @@
   "streamReaderMovePx": 0,
   "streamCls": 0,
   "streamLongTasks": [],
-  "followGapPx": 3,
+  "followGapPx": 2,
   "sitePageScrolledPx": 0,
   "siteAnchorDriftPx": 0,
   "siteNestedScroller": true,
-  "siteLoadCls": 0,
+  "siteLoadCls": 0.0003773248269896194,
   "budget": {
     "firstRows": true,
     "noShift": true,
@@ -43,5 +46,5 @@
     "following": true,
     "siteAnchored": true
   },
-  "measuredAt": "2026-11-09T23:58:43.815Z"
+  "measuredAt": "2026-11-10T00:25:54.646Z"
 }

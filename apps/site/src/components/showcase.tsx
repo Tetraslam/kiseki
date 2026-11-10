@@ -1,27 +1,23 @@
 "use client";
 
-import { Trace, TraceCompare, type TraceRecord } from "@tetraslam/kiseki";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { Trace, TraceCompare, TraceList, type TraceRecord } from "@tetraslam/kiseki";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { type Dropped, readTraceFile } from "@/lib/read-file";
 import { packageRenderers } from "@/lib/renderers";
+import { Composer } from "./composer";
 import { DropField, OpenFile } from "./drop-field";
+import { researchRenderers } from "./research";
+import { useStreamed } from "./stream";
 
-export interface Demo {
-  id: string;
-  label: string;
-  /** What to look at, in one line. */
-  note: string;
-  record?: TraceRecord;
-  compare?: [TraceRecord, TraceRecord];
-  custom?: boolean;
-  live?: boolean;
-}
+export type Demo =
+  | { id: string; label: string; note: string; kind: "chat"; record: TraceRecord }
+  | { id: string; label: string; note: string; kind: "coding"; record: TraceRecord }
+  | { id: string; label: string; note: string; kind: "runs"; records: TraceRecord[]; now: number }
+  | { id: string; label: string; note: string; kind: "evals"; a: TraceRecord; b: TraceRecord }
+  | { id: string; label: string; note: string; kind: "custom"; record: TraceRecord };
 
-/**
- * The first screen: the dyed panel (name, line, the demo picker) and the trace in a window
- * beside it, the way it sits inside a chat or a tool. Nothing on this screen scrolls the page.
- */
+/** The first screen: the dyed panel with the demo picker, and kiseki inside a host interface. */
 export function Showcase({
   demos,
   intro,
@@ -40,10 +36,7 @@ export function Showcase({
       const result = await readTraceFile(file);
       setDropped(result);
       setTab("file");
-      toast.success(
-        `${result.format}: ${result.records[0]?.steps?.length ?? 0} steps${result.issues.length ? `, ${result.issues.length} issues` : ""}`,
-        { id },
-      );
+      toast.success(`${result.format}, ${result.records[0]?.steps?.length ?? 0} steps`, { id });
     } catch (error) {
       toast.error((error as Error).message, { id });
     }
@@ -52,11 +45,10 @@ export function Showcase({
   const demo = demos.find((d) => d.id === tab);
   return (
     <DropField onFile={onFile}>
-      <div className="grid min-h-dvh gap-3 p-3 lg:h-dvh lg:grid-cols-[minmax(340px,400px)_minmax(0,1fr)]">
+      <div className="grid min-h-dvh gap-3 p-3 lg:h-dvh lg:grid-cols-[minmax(320px,380px)_minmax(0,1fr)]">
         <aside className="aizome relative flex flex-col overflow-hidden rounded-[14px] p-7 text-white">
           {intro}
-          <nav className="mt-8 grid gap-0.5" aria-label="demos">
-            <span className="mb-1.5 text-[11px] tracking-[0.08em] text-white/50">real runs</span>
+          <nav className="mt-9 grid gap-0.5" aria-label="demos">
             {demos.map((d) => (
               <DemoButton
                 key={d.id}
@@ -71,32 +63,37 @@ export function Showcase({
                 active={tab === "file"}
                 onClick={() => setTab("file")}
                 label={dropped.name}
-                note={`${dropped.format}, read in your browser`}
+                note={dropped.format}
               />
             )}
           </nav>
-          <p className="mt-5 text-[12.5px] leading-relaxed text-white/60">
-            or drop your own: opentraces, claude code, opencode, codex, pi.{" "}
-            <OpenFile onFile={onFile}>open a file</OpenFile>. nothing leaves your browser.
+          <p className="mt-5 px-3 text-[12.5px] text-white/55">
+            drop a trace to view it, or <OpenFile onFile={onFile}>open one</OpenFile>. it stays in
+            your browser.
           </p>
           <div className="mt-auto pt-8">{footer}</div>
         </aside>
         <section
-          className="h-[78dvh] min-h-0 overflow-hidden rounded-[14px] ring-1 ring-line lg:h-auto"
+          className="flex h-[82dvh] min-h-0 flex-col overflow-hidden rounded-[14px] ring-1 ring-line lg:h-auto"
           aria-label="trace"
         >
           {tab === "file" && dropped?.records[0] ? (
             <Trace key={`file:${dropped.name}`} record={dropped.records[0]} />
-          ) : demo?.compare ? (
-            <TraceCompare a={demo.compare[0]} b={demo.compare[1]} />
-          ) : demo?.live && demo.record ? (
-            <LiveReplay source={demo.record} />
-          ) : demo?.record ? (
-            <Trace
-              key={demo.id}
-              record={demo.record}
-              renderers={demo.custom ? packageRenderers : undefined}
-            />
+          ) : demo?.kind === "chat" ? (
+            <Chat key={demo.id} record={demo.record} />
+          ) : demo?.kind === "coding" ? (
+            <>
+              <div className="min-h-0 flex-1">
+                <Trace key={demo.id} record={demo.record} />
+              </div>
+              <Composer placeholder="ask a follow-up" />
+            </>
+          ) : demo?.kind === "runs" ? (
+            <Runs key={demo.id} records={demo.records} now={demo.now} />
+          ) : demo?.kind === "evals" ? (
+            <TraceCompare key={demo.id} a={demo.a} b={demo.b} />
+          ) : demo?.kind === "custom" ? (
+            <Custom key={demo.id} record={demo.record} />
           ) : null}
         </section>
       </div>
@@ -122,53 +119,80 @@ function DemoButton({
       onClick={onClick}
       className="group grid gap-0.5 rounded-[8px] px-3 py-2 text-left transition-colors duration-[90ms] ease-track hover:bg-white/[0.07] aria-pressed:bg-white/[0.12]"
     >
-      <span className="flex items-center gap-2 text-[14px] font-medium">
-        <span className="size-1.5 rounded-full bg-white/25 transition-colors group-aria-pressed:bg-white" />
-        {label}
-      </span>
-      <span className="line-clamp-2 pl-3.5 text-[12px] leading-snug text-white/55 group-aria-pressed:text-white/75">
+      <span className="text-[14px] font-medium">{label}</span>
+      <span className="text-[12.5px] leading-snug text-white/55 group-aria-pressed:text-white/75">
         {note}
       </span>
     </button>
   );
 }
 
-/** Replays a recorded run at its own pace, the way a host passes a growing record. */
-function LiveReplay({ source }: { source: TraceRecord }) {
-  const [count, setCount] = useState(1);
+/** A chat app: the run streams in as the agent works. Send runs it again. */
+function Chat({ record }: { record: TraceRecord }) {
+  const [playing, setPlaying] = useState(true);
   const [run, setRun] = useState(0);
-  const total = source.steps?.length ?? 0;
-  useEffect(() => {
-    if (count >= total) {
-      // Pause on the finished run, then play it again.
-      const again = setTimeout(() => {
-        setCount(1);
-        setRun((r) => r + 1);
-      }, 6000);
-      return () => clearTimeout(again);
-    }
-    const step = source.steps?.[count - 1];
-    const next = source.steps?.[count];
-    const gap =
-      step?.timestamp && next?.timestamp
-        ? Date.parse(next.timestamp) - Date.parse(step.timestamp)
-        : 800;
-    const timer = setTimeout(() => setCount((c) => c + 1), Math.min(1600, Math.max(250, gap)));
-    return () => clearTimeout(timer);
-  }, [source, count, total]);
-  const running = count < total;
-  const steps = (source.steps ?? []).slice(0, count);
-  const growing = steps.map((step, i) =>
-    i === steps.length - 1 && running ? { ...step, observations: [] } : step,
+  const [done, setDone] = useState(false);
+  const onDone = useCallback(() => setDone(true), []);
+  const streamed = useStreamed(record, playing, onDone);
+  const prompt = record.steps?.find((s) => s.role === "user")?.content ?? "";
+  return (
+    <>
+      <div className="min-h-0 flex-1">
+        <Trace
+          key={run}
+          record={streamed.record}
+          live={streamed.live}
+          renderers={packageRenderers}
+          overview={false}
+        />
+      </div>
+      <Composer
+        prompt={done ? prompt : ""}
+        running={streamed.live}
+        onStop={() => {
+          setPlaying(false);
+          setDone(true);
+        }}
+        onSend={() => {
+          setDone(false);
+          setPlaying(false);
+          setRun((r) => r + 1);
+          requestAnimationFrame(() => setPlaying(true));
+        }}
+      />
+    </>
   );
-  const record = running
-    ? {
-        ...source,
-        steps: growing,
-        outcome: undefined,
-        timestamp_end: undefined,
-        metrics: undefined,
-      }
-    : source;
-  return <Trace key={run} record={record} live={running} />;
+}
+
+/** A run inbox: every run with its outcome and signals; open one to read it. */
+function Runs({ records, now }: { records: TraceRecord[]; now: number }) {
+  const [selected, setSelected] = useState(records[0]?.trace_id ?? null);
+  const record = records.find((r) => r.trace_id === selected);
+  return (
+    <div className="grid min-h-0 flex-1 grid-cols-[minmax(260px,340px)_minmax(0,1fr)]">
+      <div className="flex min-h-0 flex-col border-r border-line">
+        <div className="flex h-[45px] flex-none items-center gap-2 border-b border-line px-4 text-[13px]">
+          <span className="font-medium">runs</span>
+          <span className="font-mono text-[11px] text-ink-3">{records.length}</span>
+        </div>
+        <TraceList
+          records={records}
+          selected={selected}
+          onSelect={setSelected}
+          now={now}
+          className="min-h-0 flex-1"
+        />
+      </div>
+      <div className="min-h-0">{record && <Trace key={record.trace_id} record={record} />}</div>
+    </div>
+  );
+}
+
+function Custom({ record }: { record: TraceRecord }) {
+  const renderers = useMemo(() => researchRenderers(record), [record]);
+  return (
+    <div className="min-h-0 flex-1">
+      <Trace record={record} renderers={renderers} />
+    </div>
+  );
 }

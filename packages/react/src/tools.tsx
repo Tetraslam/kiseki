@@ -1,4 +1,4 @@
-import type { PairedCall } from "@tetraslam/kiseki-core";
+import { testCounts as coreTestCounts, type PairedCall } from "@tetraslam/kiseki-core";
 import { type ReactNode, useState } from "react";
 import { DiffView } from "./blocks";
 import { useTrace } from "./context";
@@ -76,16 +76,10 @@ function outputOf(props: ToolRendererProps): string | undefined {
   return props.payload ?? props.observation?.content ?? props.observation?.output_summary;
 }
 
-/** Counts from common test runners: node --test, vitest, jest, pytest, cargo, go. */
+/** Counts from common test runners, with a fallback that counts ✔ and ✖ marks. */
 export function testCounts(text: string): { passed: number; failed: number } | undefined {
-  const node = { pass: /^ℹ pass (\d+)/m.exec(text), fail: /^ℹ fail (\d+)/m.exec(text) };
-  if (node.pass || node.fail) {
-    return { passed: Number(node.pass?.[1] ?? 0), failed: Number(node.fail?.[1] ?? 0) };
-  }
-  const failed = /(\d+) (?:failed|failing)/i.exec(text);
-  const passed = /(\d+) (?:passed|passing)/i.exec(text);
-  if (failed || passed)
-    return { passed: Number(passed?.[1] ?? 0), failed: Number(failed?.[1] ?? 0) };
+  const counted = coreTestCounts(text);
+  if (counted) return counted;
   const marks = {
     ok: (text.match(/^\s*[✔✓] /gm) ?? []).length,
     bad: (text.match(/^\s*[✖✗×] /gm) ?? []).length,

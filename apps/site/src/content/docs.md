@@ -150,6 +150,19 @@ import { TraceCompare } from "@tetraslam/kiseki";
 
 Pass `scroll="page"` to render every pair in the page's flow (fine for runs of a few hundred steps). Steps are aligned by signature (role plus sorted tool names) through a longest common subsequence (Myers' diff). Steps only one run took sit across from a gap, and the first divergence is labeled.
 
+## A list of runs
+
+`<TraceList>` lists runs, one row each: the outcome, what was asked, and signals read from the trace (tests that went from failing to passing, tool errors, files edited, subagents), then model, steps, time, and cost.
+
+```tsx
+import { TraceList, Trace } from "@tetraslam/kiseki";
+
+<TraceList records={runs} selected={id} onSelect={setId} />
+<Trace record={runs.find((r) => r.trace_id === id)} />
+```
+
+Pass `summarize` to add your own signals, such as what the user did next.
+
 ## Keyboard
 
 | key       | action                                                  |

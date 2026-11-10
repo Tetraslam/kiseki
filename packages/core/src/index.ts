@@ -1,4 +1,4 @@
-export { type AlignedPair, align, firstDivergence } from "./align";
+export { type AlignedPair, align, firstDivergence, sideBySide } from "./align";
 export {
   type CallStatus,
   type NormalizeOptions,
@@ -28,6 +28,7 @@ export {
   validateTrace,
 } from "./schema";
 export { searchSteps, searchText } from "./search";
+export { type RunSummary, type Signal, type SignalTone, summarizeRun, testCounts } from "./signals";
 export {
   ancestorsOf,
   type BranchNode,

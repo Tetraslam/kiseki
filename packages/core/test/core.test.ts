@@ -8,6 +8,7 @@ import {
   parseTraces,
   resolveGenerations,
   searchSteps,
+  sideBySide,
   type TraceRecord,
   visibleRows,
 } from "../src";
@@ -213,6 +214,17 @@ describe("align", () => {
       const matched = align(a, b).filter((p) => p.a != null && p.b != null).length;
       expect(matched).toBe(lcs(a, b));
     }
+  });
+
+  it("pairs replaced blocks side by side", () => {
+    const pairs = sideBySide(align(["u", "x", "y", "e"], ["u", "z", "e"]));
+    expect(pairs).toEqual([
+      { a: 0, b: 0 },
+      { a: 1, b: 1, changed: true },
+      { a: 2 },
+      { a: 3, b: 2 },
+    ]);
+    expect(firstDivergence(pairs)).toBe(1);
   });
 
   it("aligns 10,000-step runs quickly", () => {

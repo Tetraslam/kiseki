@@ -5,12 +5,14 @@ import {
   firstDivergence,
   normalize,
   type Row,
+  sideBySide,
   type TraceRecord,
   type TraceView,
   visibleRows,
 } from "@tetraslam/kiseki-core";
 import { type CSSProperties, useCallback, useMemo, useRef, useState } from "react";
 import { type PayloadEntry, TraceContext, type TraceContextValue } from "./context";
+import { formatCost, formatDuration, shortModel } from "./format";
 import { findOutliers, guessWorkdir } from "./insight";
 import { StepRow } from "./StepRow";
 import { toggleIn } from "./state";
@@ -54,9 +56,11 @@ export function TraceCompare({
   const rightRows = useMemo(() => allRows(right), [right]);
   const pairs = useMemo(
     () =>
-      align(
-        leftRows.map((r) => r.view.signature),
-        rightRows.map((r) => r.view.signature),
+      sideBySide(
+        align(
+          leftRows.map((r) => r.view.signature),
+          rightRows.map((r) => r.view.signature),
+        ),
       ),
     [leftRows, rightRows],
   );
@@ -114,7 +118,7 @@ export function TraceCompare({
       </TraceContext.Provider>
     );
 
-  const same = pairs.filter((p) => p.a != null && p.b != null).length;
+  const same = pairs.filter((p) => p.a != null && p.b != null && !p.changed).length;
   return (
     <section
       className={className ? `kiseki ${className}` : "kiseki"}
@@ -127,27 +131,19 @@ export function TraceCompare({
         <TraceHeader view={left} />
         <TraceHeader view={right} />
       </div>
-      <div className="kiseki-toolbar">
-        <span className="kiseki-num">
-          {same} shared · {leftRows.length - same} only left · {rightRows.length - same} only right
-        </span>
-        {divergence >= 0 && (
-          <button
-            type="button"
-            className="kiseki-toggle"
-            data-push=""
-            onClick={() => {
-              if (scroll === "container") virtualizer.scrollToIndex(divergence, { align: "start" });
-              else
-                document
-                  .querySelectorAll(".kiseki-pair[data-first-divergence]")[0]
-                  ?.scrollIntoView({ block: "center", behavior: "smooth" });
-            }}
-          >
-            jump to first divergence
-          </button>
-        )}
-      </div>
+      <Delta
+        left={left}
+        right={right}
+        shared={same}
+        divergence={divergence >= 0}
+        onJump={() => {
+          if (scroll === "container") virtualizer.scrollToIndex(divergence, { align: "start" });
+          else
+            document
+              .querySelectorAll(".kiseki-pair[data-first-divergence]")[0]
+              ?.scrollIntoView({ block: "center", behavior: "smooth" });
+        }}
+      />
       {scroll === "page" ? (
         <div className="kiseki-rows">
           {pairs.map((pair, index) => (
@@ -191,6 +187,59 @@ export function TraceCompare({
   );
 }
 
+/** What differs between the runs, before any step: steps, time, cost, and where they split. */
+function Delta({
+  left,
+  right,
+  shared,
+  divergence,
+  onJump,
+}: {
+  left: TraceView;
+  right: TraceView;
+  shared: number;
+  divergence: boolean;
+  onJump: () => void;
+}) {
+  const name = (view: TraceView) => shortModel(view.record.agent.model) || view.record.agent.name;
+  const ratio = (a?: number, b?: number) => (a && b ? b / a : undefined);
+  const parts: { label: string; value: string }[] = [];
+  const steps = ratio(left.totals.steps, right.totals.steps);
+  if (steps) parts.push({ label: "steps", value: `${left.totals.steps} vs ${right.totals.steps}` });
+  if (left.totals.durationMs && right.totals.durationMs) {
+    parts.push({
+      label: "time",
+      value: `${formatDuration(left.totals.durationMs)} vs ${formatDuration(right.totals.durationMs)}`,
+    });
+  }
+  if (left.totals.costUsd != null && right.totals.costUsd != null) {
+    parts.push({
+      label: "cost",
+      value: `${formatCost(left.totals.costUsd)} vs ${formatCost(right.totals.costUsd)}`,
+    });
+  }
+  return (
+    <div className="kiseki-delta">
+      <span>
+        <b>{name(left)}</b> vs <b>{name(right)}</b>
+      </span>
+      {parts.map((part) => (
+        <span key={part.label}>
+          {part.label} <b>{part.value}</b>
+        </span>
+      ))}
+      <span>
+        <b>{shared}</b> steps in common
+      </span>
+      {divergence && (
+        <button type="button" className="kiseki-chip" data-push="" onClick={onJump}>
+          jump to where they split
+        </button>
+      )}
+    </div>
+  );
+}
+
 function Pair({
   pair,
   first,
@@ -205,7 +254,7 @@ function Pair({
   return (
     <div
       className="kiseki-pair"
-      data-diverged={pair.a == null || pair.b == null || undefined}
+      data-diverged={pair.a == null || pair.b == null || pair.changed || undefined}
       data-first-divergence={first || undefined}
     >
       <div>{left}</div>

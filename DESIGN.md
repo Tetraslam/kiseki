@@ -63,7 +63,9 @@ Heavy payloads: render `output_summary` first. Full `content` comes from the rec
   - patches no call claims, as a line that opens to the diff
   - subagents: a foldable branch, folded by default. One launching step can hold several subagents back to back; they are split into runs (`branchRuns`) where a new prompt starts or time jumps backward.
 - `renderers={{ tools: { searchProfiles: PeopleCards }, fallback }}`: custom renderers per `tool_name`. They receive the paired call, its observation, and the step.
-- `<TraceCompare a={...} b={...} />`: two traces aligned by step signature (role plus tool names), via LCS. It highlights where the two runs diverge.
+- `<TraceList records={...} />`: a list of runs, one row each: outcome, what was asked, and signals read from the trace by core's `summarizeRun` (tests failing to passing, tool errors, files edited, no edits, subagents), then model, steps, time, cost. Hosts add their own signals through `summarize`. This is the inbox a raindrop-style tool opens on.
+- User turns read as right-aligned bubbles, as in a chat; agent turns are plain prose.
+- `<TraceCompare a={...} b={...} />`: opens with what differs (models, steps, time, cost, steps in common, a jump to where they split), then two traces aligned by step signature (role plus tool names), via LCS. It highlights where the two runs diverge.
 
 ## Live mode
 
@@ -101,7 +103,7 @@ Tooling: TypeScript, Biome, Vitest, Changesets for releases.
 
 ## Non-goals
 
-Storage, ingestion, auth, dashboards, evals, alerting, and generic span rendering. A trace list filtered by outcome may come later as a second component, after the viewer holds up.
+Storage, ingestion, auth, dashboards, evals, alerting, and generic span rendering. `<TraceList>` renders runs the host already has; it doesn't fetch, filter, or store them.
 
 ## Milestones
 

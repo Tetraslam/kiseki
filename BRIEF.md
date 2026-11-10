@@ -32,7 +32,7 @@ the trace is the product. it reads top to bottom, in order, as a run made of tur
 - **tool calls**: one line each: a toggle, the tool's name in receded mono (red only when it failed), what it acted on, a trivial result on the right (line 1, 5 entries, +7 −2, 10 passed), and the duration. a second, quieter line only when the result carries information: failures with the failing tests' names, errors, the first match. edits show their diff inline, quiet backgrounds, capped at 12 lines with "show all".
 - **live**: a cursor sits at the end of the latest turn, and "scroll to latest" appears only when the reader has scrolled up.
 - **the map** (the trajectory overview) is secondary: closed by default, opened from the bar, and floating over the trace rather than pushing it down.
-- **site**: one screen. the dyed panel on the left holds the name, one line, install, and the demo picker; the trace sits beside it in a fixed window and scrolls inside, the way it would in a chat or a tool. the page itself barely scrolls: a short strip of code below, nothing else.
+- **site**: one screen. the dyed panel holds the name, one line, install, and the demo picker; beside it, kiseki inside the interfaces people build: a chat with a composer (streaming), a coding agent, a run inbox, an eval comparison, and a research tool with the host's own renderers. copy is minimal: say it once, plainly, no metaphors.
 
 the bar for every row, gap, type size, and hover is diffs.com and trees.software: hairline frames, 6px hover radii, 28px interactive lines, quiet diff backgrounds, 12–13px ui type, 20px code lines, and soft ink rather than pure white.
 

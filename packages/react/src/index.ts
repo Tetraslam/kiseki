@@ -7,6 +7,7 @@ export {
   parseTraces,
   resolveGenerations,
   searchSteps,
+  summarizeRun,
   validateTrace,
   visibleRows,
 } from "@tetraslam/kiseki-core";
@@ -17,6 +18,7 @@ export { Timeline, type TimelineProps } from "./Timeline";
 export { Trace, type TraceProps } from "./Trace";
 export { TraceCompare, type TraceCompareProps } from "./TraceCompare";
 export { TraceHeader, type TraceHeaderProps } from "./TraceHeader";
+export { TraceList, type TraceListProps } from "./TraceList";
 export { type OverviewHandle, TraceOverview, type TraceOverviewProps } from "./TraceOverview";
 export {
   EditCall,
